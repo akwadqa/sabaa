@@ -182,6 +182,12 @@ doctype_js = {
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "sabaa.event.get_events"
 # }
+
+override_whitelisted_methods = {
+    "erpnext.stock.doctype.delivery_note.delivery_note.make_sales_invoice": "sabaa.override.delivery_note_override.make_sales_invoice"
+}
+
+
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
