@@ -1,0 +1,25 @@
+[
+ {
+  "align": "Left",
+  "content": "<style>\n    .header-img {\n        display: block;\n        width: 100%;\n        height: 100%;\n        margin: 0 auto;\n        margin-bottom: 25px;\n    }\n    \n    .print-format img {\n        max-width:none;\n    }\n    \n    .print-format {\n        padding-top:10px;    \n    }\n</style>\n\n<img class=\"header-img\" src=\"{{ frappe.utils.get_url() }}/files/saba-letterhead.jpg\">\n",
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Letter Head",
+  "footer": null,
+  "footer_align": "Left",
+  "footer_image": null,
+  "footer_image_height": 0.0,
+  "footer_image_width": 0.0,
+  "footer_script": null,
+  "footer_source": "HTML",
+  "header_script": null,
+  "image": null,
+  "image_height": 0.0,
+  "image_width": 0.0,
+  "is_default": 1,
+  "letter_head_name": "Sabaa",
+  "modified": "2025-10-22 15:21:48.657054",
+  "name": "Sabaa",
+  "source": "HTML"
+ }
+]
