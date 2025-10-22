@@ -9,11 +9,11 @@ def execute():
                 "fieldname": "expense_date",
                 "label": _("Expense Date"),
                 "fieldtype": "Date",
-                "insert_after": "amount",
+                "insert_after": "expense_account",
                 "module": "Sabaa",
                 "in_list_view": 1,
                 "reqd": 1,
-                "in_standard_filter": 1,
+                "in_standard_filter": 1
             }
         ],
     }
