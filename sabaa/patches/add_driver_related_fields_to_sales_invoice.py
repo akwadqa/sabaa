@@ -5,12 +5,19 @@ from frappe import _
 def execute():
     custom_fields = {
         "Sales Invoice": [
+             {
+                "fieldname": "transporter_info",
+                "label": _("Transporter Info"),
+                "fieldtype": "Section Break",
+                "insert_after": "po_date",
+                "module": "Sabaa",
+            },
             {
                 "fieldname": "driver",
                 "label": _("Driver"),
                 "fieldtype": "Link",
                 "options": "Driver",
-                "insert_after": "po_date",
+                "insert_after": "transporter_info",
                 "module": "Sabaa",
             },
             {
