@@ -12,8 +12,8 @@ def make_sales_invoice(source_name, target_doc=None):
 
         sales_invoice = original_make_sales_invoice(source_name, target_doc)
 
-        sales_invoice.custom_driver = delivery_note.driver
-        sales_invoice.custom_driver_name = delivery_note.driver_name
+        sales_invoice.driver = delivery_note.driver
+        sales_invoice.driver_name = delivery_note.driver_name
 
         return sales_invoice
 
