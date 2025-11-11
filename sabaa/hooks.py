@@ -255,3 +255,10 @@ override_whitelisted_methods = {
 
 from sabaa.override.due_date_patch import apply_patch as _apply_due_date_patch
 _apply_due_date_patch()
+
+
+
+from erpnext.controllers import selling_controller
+from sabaa.override.selling_controller_override import custom_validate_selling_price
+
+selling_controller.SellingController.validate_selling_price = custom_validate_selling_price
