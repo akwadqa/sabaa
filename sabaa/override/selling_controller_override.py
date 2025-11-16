@@ -2,6 +2,8 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+
+
 def custom_validate_selling_price(self):
     try:
         if self.get("is_return") or not frappe.db.get_single_value("Selling Settings", "validate_selling_price"):
@@ -61,22 +63,11 @@ def custom_validate_selling_price(self):
                     under_cost_flag = True
 
         if under_cost_flag:
+            self.under_cost_detected = 1
+        else:
+            self.under_cost_detected = 0
 
-            try:
-                if frappe.db.exists("Workflow", "Selling Under Cost"):
-                    is_active = frappe.db.get_value("Workflow", "Selling Under Cost", "is_active")
-                    if not is_active:
-                        frappe.db.set_value("Workflow", "Selling Under Cost", "is_active", 1)
-                        frappe.msgprint(_("Workflow 'Selling Under Cost' has been activated automatically."))
-                    else:
-                        frappe.logger().info("Workflow 'Selling Under Cost' was already active.")
-                else:
-                    frappe.msgprint(_("Workflow 'Selling Under Cost' not found."))
-                    frappe.log_error("Workflow 'Selling Under Cost' not found.", "Under Cost Workflow Activation")
-            except Exception as e:
-                frappe.log_error(frappe.get_traceback(), "Error activating 'Selling Under Cost' workflow")
-                frappe.throw(_("An error occurred while activating 'Selling Under Cost' workflow. Check Error Logs."))
-    
+
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Error in custom_validate_selling_price")
+        frappe.log_error("Error in custom_validate_selling_price", e)
         frappe.throw(_("Unexpected error during selling price validation. Please check Error Logs."))
