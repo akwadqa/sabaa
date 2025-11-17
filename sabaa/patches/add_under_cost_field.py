@@ -11,6 +11,7 @@ def execute():
                 "fieldtype": "Check",
                 "insert_after": "total_qty",
                 "module": "Sabaa",
+                "read_only": 1,
             }
         ]
     }
