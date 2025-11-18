@@ -153,6 +153,10 @@ doctype_js = {
 doc_events = {
     "Sales Invoice": {
         "validate": "sabaa.override.sales_invoice_due_date.apply_custom_due_date"
+    },
+    
+    "Purchase Order": {
+        "validate": "sabaa.override.purchase_order_gross_weight.calculate_total_gross_weight"
     }
 }
 
