@@ -17,20 +17,22 @@ frappe.query_reports["Delivery Note Report"] = {
         {
             fieldname: "item",
             label: "Item (Name / Code / Barcode)",
-            fieldtype: "Data",
+            fieldtype: "Link",
+            options: "Item",
             reqd: 0
         },
         {
             fieldname: "driver_name",
             label: "Driver Name",
-            fieldtype: "Data",
+            fieldtype: "Link",
+            options: "Driver",
             reqd: 0
         },
         {
             fieldname: "status",
             label: "DN Status",
             fieldtype: "Select",
-            options: "\nDraft\nSubmitted\nCancelled",
+            options: "\nDraft\nTo Bill\nClosed\nCompleted",
             reqd: 0
         },
         {
@@ -39,12 +41,6 @@ frappe.query_reports["Delivery Note Report"] = {
             fieldtype: "Link",
             options: "Warehouse",
             reqd: 0
-        },
-        {
-            fieldname: "group_by_item",
-            label: "Group by Item Name",
-            fieldtype: "Check",
-            default: 0
         }
     ]
 };

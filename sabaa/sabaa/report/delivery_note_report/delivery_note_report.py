@@ -6,11 +6,11 @@ def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
 
-    # If Group button clicked
-    if filters.get("group_by_item"):
-        data = group_by_item_name(data)
+    # Always group by driver now
+    data = group_by_driver(data)
 
     return columns, data
+
 
 
 def get_columns():
@@ -20,7 +20,7 @@ def get_columns():
         {"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 200},
         {"label": "UOM", "fieldname": "uom", "fieldtype": "Data", "width": 120},
         {"label": "Qty", "fieldname": "qty", "fieldtype": "Float", "width": 120},
-        {"label": "Driver Name", "fieldname": "driver_name", "fieldtype": "Data", "width": 180},
+        {"label": "Driver Name", "fieldname": "driver_name", "fieldtype": "Link", "options": "Driver", "width": 180},
     ]
 
 
@@ -43,7 +43,7 @@ def get_data(filters):
         params["item_like"] = f"%{filters['item']}%"
 
     if filters.get("driver_name"):
-        conditions.append("dn.driver_name = %(driver_name)s")
+        conditions.append("dn.driver = %(driver_name)s")
         params["driver_name"] = filters["driver_name"]
 
     if filters.get("status"):
@@ -75,27 +75,34 @@ def get_data(filters):
     return frappe.db.sql(query, params, as_dict=True)
 
 
-def group_by_item_name(data):
+def group_by_driver(data):
     grouped = {}
     result = []
 
     for row in data:
-        key = row["item_name"]
+        driver = row.get("driver_name") or ""
 
-        if key not in grouped:
-            grouped[key] = {
+        # If driver is empty, DO NOT group → keep as separate row
+        if not driver:
+            result.append(row)
+            continue
+
+        # Normal grouping for named drivers
+        if driver not in grouped:
+            grouped[driver] = {
                 "barcode": row["barcode"],
                 "item_code": row["item_code"],
                 "item_name": row["item_name"],
                 "uom": row["uom"],
                 "qty": 0,
-                "driver_name": row["driver_name"],
+                "driver_name": driver,
             }
 
-        grouped[key]["qty"] += row["qty"]
+        grouped[driver]["qty"] += row["qty"]
 
-    # Convert to list
-    for item in grouped.values():
-        result.append(item)
+    # Add grouped drivers to result
+    result.extend(grouped.values())
 
     return result
+
+
