@@ -81,28 +81,32 @@ def group_by_driver(data):
 
     for row in data:
         driver = row.get("driver_name") or ""
+        item = row.get("item_code")
 
-        # If driver is empty, DO NOT group → keep as separate row
+        # If driver is empty → DO NOT group at all
         if not driver:
             result.append(row)
             continue
 
-        # Normal grouping for named drivers
-        if driver not in grouped:
-            grouped[driver] = {
+        # Group by (driver_name + item_code)
+        key = f"{driver}::{item}"
+
+        if key not in grouped:
+            grouped[key] = {
                 "barcode": row["barcode"],
-                "item_code": row["item_code"],
+                "item_code": item,
                 "item_name": row["item_name"],
                 "uom": row["uom"],
                 "qty": 0,
                 "driver_name": driver,
             }
 
-        grouped[driver]["qty"] += row["qty"]
+        grouped[key]["qty"] += row["qty"]
 
-    # Add grouped drivers to result
+    # Add grouped rows to result
     result.extend(grouped.values())
 
     return result
+
 
 
