@@ -54,6 +54,18 @@ def get_data(filters):
         conditions.append("dni.warehouse = %(warehouse)s")
         params["warehouse"] = filters["warehouse"]
 
+    if filters.get("posting_date"):
+        from_date, to_date = filters.get("posting_date")
+
+        if from_date:
+            conditions.append("dn.posting_date >= %(from_date)s")
+            params["from_date"] = from_date
+
+        if to_date:
+            conditions.append("dn.posting_date <= %(to_date)s")
+            params["to_date"] = to_date
+
+
     # Build conditions SQL
     where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 

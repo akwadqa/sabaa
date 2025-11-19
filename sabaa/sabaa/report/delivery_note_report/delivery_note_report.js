@@ -41,6 +41,12 @@ frappe.query_reports["Delivery Note Report"] = {
             fieldtype: "Link",
             options: "Warehouse",
             reqd: 0
+        },
+        {
+            fieldname: "posting_date",
+            label: "Posting Date",
+            fieldtype: "DateRange",
+            reqd: 0
         }
     ]
 };
