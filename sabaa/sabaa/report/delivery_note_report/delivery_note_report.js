@@ -9,7 +9,7 @@ frappe.query_reports["Delivery Note Report"] = {
         },
         {
             fieldname: "dn_ref",
-            label: "DN Ref",
+            label: "Delivery Note",
             fieldtype: "Link",
             options: "Delivery Note",
             reqd: 0

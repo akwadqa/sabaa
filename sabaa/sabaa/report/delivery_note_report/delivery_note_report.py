@@ -15,6 +15,7 @@ def execute(filters=None):
 
 def get_columns():
     return [
+        {"label": "Delivery Note", "fieldname": "dn_ref", "fieldtype": "Link", "options": "Delivery Note" "width": 150},
         {"label": "Item Barcode", "fieldname": "barcode", "fieldtype": "Data", "width": 150},
         {"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 150},
         {"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 200},
@@ -76,7 +77,8 @@ def get_data(filters):
             dni.item_name AS item_name,
             dni.uom AS uom,
             dni.qty AS qty,
-            dn.driver_name AS driver_name
+            dn.driver_name AS driver_name,
+            dn.name AS dn_ref
         FROM `tabDelivery Note` dn
         INNER JOIN `tabDelivery Note Item` dni
             ON dni.parent = dn.name
@@ -94,6 +96,7 @@ def group_by_driver(data):
     for row in data:
         driver = row.get("driver_name") or ""
         item = row.get("item_code")
+        dn_ref = row.get("dn_ref")
 
         # ===========================
         # CASE 1: Driver is empty
@@ -110,9 +113,11 @@ def group_by_driver(data):
                     "uom": row["uom"],
                     "qty": 0,
                     "driver_name": "",
+                    "dn_list": set(),
                 }
 
             grouped[key]["qty"] += row["qty"]
+            grouped[key]["dn_list"].add(dn_ref)
             continue
 
         # ===========================
@@ -129,12 +134,30 @@ def group_by_driver(data):
                 "uom": row["uom"],
                 "qty": 0,
                 "driver_name": driver,
+                "dn_list": set(),
             }
 
         grouped[key]["qty"] += row["qty"]
+        grouped[key]["dn_list"].add(dn_ref)
 
-    # Build final list
-    result.extend(grouped.values())
+
+    for k, row in grouped.items():
+
+        # Apply your rule:
+        # If only ONE DN → show it
+        # If multiple DN → blank
+        dn_refs = list(row["dn_list"])
+        dn_ref_value = dn_refs[0] if len(dn_refs) == 1 else ""
+
+        result.append({
+            "barcode": row["barcode"],
+            "item_code": row["item_code"],
+            "item_name": row["item_name"],
+            "uom": row["uom"],
+            "qty": row["qty"],
+            "driver_name": row["driver_name"],
+            "dn_ref": dn_ref_value,
+        })
 
     return result
 
