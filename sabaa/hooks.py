@@ -45,9 +45,6 @@ app_license = "mit"
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 
-doctype_js = {
-    "Sales Invoice": "public/js/sales_invoice_due_date.js",
-}
 
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -151,10 +148,6 @@ doctype_js = {
 # }
 
 doc_events = {
-    "Sales Invoice": {
-        "validate": "sabaa.override.sales_invoice_due_date.apply_custom_due_date"
-    },
-    
     "Purchase Order": {
         "validate": "sabaa.override.purchase_order_gross_weight.calculate_total_gross_weight"
     }

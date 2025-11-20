@@ -19,7 +19,7 @@ def apply_patch():
     # prevent double-patching (e.g., multiple imports/worker processes)
     if getattr(party, "_sabaa_due_date_patched", False):
         return
-    party._yourapp_due_date_patched = True
+    party._sabaa_due_date_patched = True
 
     original_fn = party.validate_due_date_with_template
 
