@@ -48,5 +48,31 @@ frappe.query_reports["Delivery Note Report"] = {
             fieldtype: "DateRange",
             reqd: 0
         }
-    ]
+    ],
+
+    onload: function (report) {
+        const df = report.get_filter('posting_date');
+
+        setTimeout(() => {
+            const wrapper = $(df.$wrapper);
+
+            // Prevent duplicate buttons
+            if (wrapper.find('.today-btn').length === 0) {
+                wrapper.append(`
+                    <button class="btn btn-xs btn-default today-btn"
+                        style="margin-left: 50px;
+                        margin-top: 10px;
+                        width: 90px;">
+                        Today
+                    </button>
+                `);
+
+                wrapper.find(".today-btn").on("click", () => {
+                    const today = frappe.datetime.get_today();
+                    df.set_value([today, today]);
+                    report.refresh();
+                });
+            }
+        }, 400);
+    }
 };

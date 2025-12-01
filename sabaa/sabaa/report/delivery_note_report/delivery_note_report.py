@@ -6,8 +6,7 @@ def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
 
-    # Always group by driver now
-    data = group_by_driver(data)
+    data = group_delivery_note_rows(data)
 
     return columns, data
 
@@ -67,7 +66,6 @@ def get_data(filters):
             params["to_date"] = to_date
 
 
-    # Build conditions SQL
     where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
     query = f"""
@@ -89,49 +87,42 @@ def get_data(filters):
     return frappe.db.sql(query, params, as_dict=True)
 
 
-def group_by_driver(data):
+def group_delivery_note_rows(data):
     grouped = {}
     result = []
 
     for row in data:
         driver = row.get("driver_name") or ""
         item = row.get("item_code")
+        uom = row.get("uom")
         dn_ref = row.get("dn_ref")
 
-        # ===========================
-        # CASE 1: Driver is empty
-        # → Group by item_code only
-        # ===========================
+        # CASE 1: No driver → group by item + uom only
         if not driver:
-            key = f"EMPTY::{item}"
-
+            key = f"EMPTY::{item}::{uom}"
             if key not in grouped:
                 grouped[key] = {
                     "barcode": row["barcode"],
                     "item_code": item,
                     "item_name": row["item_name"],
-                    "uom": row["uom"],
+                    "uom": uom,
                     "qty": 0,
                     "driver_name": "",
                     "dn_list": set(),
                 }
-
             grouped[key]["qty"] += row["qty"]
             grouped[key]["dn_list"].add(dn_ref)
             continue
 
-        # ===========================
-        # CASE 2: Driver is NOT empty
-        # → Group by driver + item_code
-        # ===========================
-        key = f"{driver}::{item}"
+        # CASE 2: Driver exists → group by driver + item + uom
+        key = f"{driver}::{item}::{uom}"
 
         if key not in grouped:
             grouped[key] = {
                 "barcode": row["barcode"],
                 "item_code": item,
                 "item_name": row["item_name"],
-                "uom": row["uom"],
+                "uom": uom,
                 "qty": 0,
                 "driver_name": driver,
                 "dn_list": set(),
@@ -140,12 +131,7 @@ def group_by_driver(data):
         grouped[key]["qty"] += row["qty"]
         grouped[key]["dn_list"].add(dn_ref)
 
-
     for k, row in grouped.items():
-
-        # Apply your rule:
-        # If only ONE DN → show it
-        # If multiple DN → blank
         dn_refs = list(row["dn_list"])
         dn_ref_value = dn_refs[0] if len(dn_refs) == 1 else ""
 
@@ -160,6 +146,7 @@ def group_by_driver(data):
         })
 
     return result
+
 
 
 
