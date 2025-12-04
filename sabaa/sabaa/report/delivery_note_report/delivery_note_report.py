@@ -1,14 +1,28 @@
 import frappe
 
 def execute(filters=None):
-    filters = filters or {}
+	filters = filters or {}
 
-    columns = get_columns()
-    data = get_data(filters)
+	columns = get_columns()
+	data = get_data(filters)
 
-    data = group_delivery_note_rows(data)
+	data = group_delivery_note_rows(data)
 
-    return columns, data
+	# --- ADD TOTAL ROW ---
+	total_qty = sum(d.get("qty", 0) for d in data)
+
+	data.append({
+		"dn_ref": "",
+		"barcode": "",
+		"item_code": "",
+		"item_name": "<b>Total</b>",
+		"uom": "",
+		"qty": total_qty,
+		"driver_name": "",
+	})
+	# -----------------------
+
+	return columns, data
 
 
 
