@@ -8,19 +8,33 @@ def execute(filters=None):
 
 	data = group_delivery_note_rows(data)
 
-	# --- ADD TOTAL ROW ---
+	# ---- Collect per-UOM totals ----
+	uom_totals = {}
+	for d in data:
+		uom = d.get("uom")
+		qty = d.get("qty", 0)
+
+		if not uom:
+			continue
+
+		uom_totals[uom] = uom_totals.get(uom, 0) + qty
+
+	# Build breakdown string like: "15 Ctn, 10 Pcs"
+	breakdown_str = ", ".join(f"{qty} {uom}" for uom, qty in uom_totals.items())
+
+	# Total sum of all qty
 	total_qty = sum(d.get("qty", 0) for d in data)
 
+	# ---- Add TOTAL ROW WITH BREAKDOWN ----
 	data.append({
 		"dn_ref": "",
 		"barcode": "",
 		"item_code": "",
-		"item_name": "<b>Total</b>",
+		"item_name": f"<b>Total</b>",  # unchanged
 		"uom": "",
-		"qty": total_qty,
+		"qty": f"{total_qty} ({breakdown_str})",  # breakdown appended here
 		"driver_name": "",
 	})
-	# -----------------------
 
 	return columns, data
 
