@@ -6,30 +6,28 @@ def execute(filters=None):
 	columns = get_columns()
 	data = get_data(filters)
 
-	# Group rows (item + uom + driver + delivery note)
+	# Group rows (1 row per item per driver)
 	data = group_delivery_note_rows(data)
 
-	# ---- Collect per-UOM totals ----
+	# ---- Collect global totals by UOM ----
 	uom_totals = {}
 	for d in data:
-		uom = d.get("uom")
-		qty = d.get("qty", 0)
-		if not uom:
-			continue
-		uom_totals[uom] = uom_totals.get(uom, 0) + qty
+		breakdown = d.get("uom_breakdown_raw") or {}
+		for uom, qty in breakdown.items():
+			uom_totals[uom] = uom_totals.get(uom, 0) + qty
 
+	# Build breakdown string like "15 Ctn, 10 Pcs"
 	breakdown_str = ", ".join(f"{qty} {uom}" for uom, qty in uom_totals.items())
 	total_qty = sum(d.get("qty", 0) for d in data)
 
 	# ---- Add TOTAL ROW ----
 	data.append({
-		"dn_ref": "",
-		"barcode": "",
 		"item_code": "",
 		"item_name": "<b>Total</b>",
-		"uom": "",
 		"qty": total_qty,
-		"driver_name": breakdown_str,
+		"uom_breakdown": breakdown_str,
+		"driver_name": "",
+		"uom_breakdown_raw": {},
 	})
 
 	return columns, data
@@ -37,11 +35,10 @@ def execute(filters=None):
 
 def get_columns():
 	return [
-		{"label": "Item Barcode", "fieldname": "barcode", "fieldtype": "Data", "width": 150},
 		{"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 150},
 		{"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 200},
 		{"label": "Qty", "fieldname": "qty", "fieldtype": "Float", "width": 120},
-		{"label": "UOM", "fieldname": "uom", "fieldtype": "Data", "width": 120},
+		{"label": "UOM Breakdown", "fieldname": "uom_breakdown", "fieldtype": "Data", "width": 200},
 		{"label": "Driver Name", "fieldname": "driver_name", "fieldtype": "Link", "options": "Driver", "width": 180},
 	]
 
@@ -89,13 +86,11 @@ def get_data(filters):
 
 	query = f"""
         SELECT
-            dni.barcode AS barcode,
             dni.item_code AS item_code,
             dni.item_name AS item_name,
             dni.uom AS uom,
             dni.qty AS qty,
-            dn.driver_name AS driver_name,
-            dn.name AS dn_ref
+            dn.driver_name AS driver_name
         FROM `tabDelivery Note` dn
         INNER JOIN `tabDelivery Note Item` dni
             ON dni.parent = dn.name
@@ -113,36 +108,43 @@ def group_delivery_note_rows(data):
 		driver = row.get("driver_name") or ""
 		item = row.get("item_code")
 		uom = row.get("uom")
-		dn_ref = row.get("dn_ref")
+		qty = row.get("qty", 0)
 
-		# Grouping key: driver + item + uom
-		key = f"{driver}::{item}::{uom}"
+		# key per driver + item
+		key = f"{driver}::{item}"
 
 		if key not in grouped:
 			grouped[key] = {
-				"barcode": row["barcode"],
 				"item_code": item,
 				"item_name": row["item_name"],
-				"uom": uom,
-				"qty": 0,
+				"uom_breakdown_raw": {},   # store each UOM qty
+				"total_qty": 0,
 				"driver_name": driver,
-				"dn_list": set(),
 			}
 
-		grouped[key]["qty"] += row["qty"]
-		grouped[key]["dn_list"].add(dn_ref)
+		# sum total qty (all UOMs combined)
+		grouped[key]["total_qty"] += qty
 
-	# Convert grouped dict → list
+		# sum per-UOM
+		if uom:
+			grouped[key]["uom_breakdown_raw"][uom] = grouped[key]["uom_breakdown_raw"].get(uom, 0) + qty
+
+	# Convert grouped → report rows
 	result = []
 	for row in grouped.values():
+		breakdown_parts = []
+		for uom, qty in row["uom_breakdown_raw"].items():
+			breakdown_parts.append(f"{qty} {uom}")
+
+		breakdown_str = ", ".join(breakdown_parts)
+
 		result.append({
-			"barcode": row["barcode"],
 			"item_code": row["item_code"],
 			"item_name": row["item_name"],
-			"uom": row["uom"],
-			"qty": row["qty"],
+			"qty": row["total_qty"],
+			"uom_breakdown": breakdown_str,
 			"driver_name": row["driver_name"],
-			"dn_ref": "",
+			"uom_breakdown_raw": row["uom_breakdown_raw"],
 		})
 
 	return result

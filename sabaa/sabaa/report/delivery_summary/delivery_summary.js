@@ -1,12 +1,12 @@
 frappe.query_reports["Delivery Summary"] = {
-    filters: [
-        {
-            fieldname: "company",
-            label: "Company",
-            fieldtype: "Link",
-            options: "Company",
-            reqd: 0
-        },
+	filters: [
+		{
+			fieldname: "company",
+			label: "Company",
+			fieldtype: "Link",
+			options: "Company",
+			reqd: 0
+		},
 		{
 			fieldname: "from_date",
 			label: __("From Date"),
@@ -21,11 +21,11 @@ frappe.query_reports["Delivery Summary"] = {
 			default: frappe.datetime.get_today(),
 			reqd: 1,
 		},
+
 		{
 			fieldname: "delivery_note",
 			label: __("Delivery Note"),
 			fieldtype: "MultiSelectList",
-			options: "party_type",
 			get_data: function (txt) {
 				const from_date = frappe.query_report.get_filter_value("from_date");
 				const to_date = frappe.query_report.get_filter_value("to_date");
@@ -35,26 +35,27 @@ frappe.query_reports["Delivery Summary"] = {
 				});
 			}
 		},
-        {
-            fieldname: "item",
-            label: "Item (Name / Code / Barcode)",
-            fieldtype: "Link",
-            options: "Item",
-            reqd: 0
-        },
-        {
-            fieldname: "driver_name",
-            label: "Driver Name",
-            fieldtype: "Link",
-            options: "Driver",
-            reqd: 0
-        },
-        {
-            fieldname: "warehouse",
-            label: "Warehouse",
-            fieldtype: "Link",
-            options: "Warehouse",
-            reqd: 0
-        }
-    ],
+
+		{
+			fieldname: "item",
+			label: "Item (Name / Code / Barcode)",
+			fieldtype: "Link",
+			options: "Item",
+			reqd: 0
+		},
+		{
+			fieldname: "driver_name",
+			label: "Driver Name",
+			fieldtype: "Link",
+			options: "Driver",
+			reqd: 0
+		},
+		{
+			fieldname: "warehouse",
+			label: "Warehouse",
+			fieldtype: "Link",
+			options: "Warehouse",
+			reqd: 0
+		}
+	],
 };
