@@ -1,4 +1,4 @@
-frappe.query_reports["Delivery Note Report"] = {
+frappe.query_reports["Delivery Summary"] = {
     filters: [
         {
             fieldname: "company",
