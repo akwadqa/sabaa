@@ -1,4 +1,4 @@
-frappe.query_reports["Delivery Note Report"] = {
+frappe.query_reports["Custom Delivery Note"] = {
     filters: [
         {
             fieldname: "company",
@@ -43,36 +43,16 @@ frappe.query_reports["Delivery Note Report"] = {
             reqd: 0
         },
         {
-            fieldname: "posting_date",
-            label: "Posting Date",
-            fieldtype: "DateRange",
+            fieldname: "from_date",
+            label: "From Date",
+            fieldtype: "Date",
+            reqd: 0
+        },
+        {
+            fieldname: "to_date",
+            label: "To Date",
+            fieldtype: "Date",
             reqd: 0
         }
-    ],
-
-    onload: function (report) {
-        const df = report.get_filter('posting_date');
-
-        setTimeout(() => {
-            const wrapper = $(df.$wrapper);
-
-            // Prevent duplicate buttons
-            if (wrapper.find('.today-btn').length === 0) {
-                wrapper.append(`
-                    <button class="btn btn-xs btn-default today-btn"
-                        style="margin-left: 50px;
-                        margin-top: 10px;
-                        width: 90px;">
-                        Today
-                    </button>
-                `);
-
-                wrapper.find(".today-btn").on("click", () => {
-                    const today = frappe.datetime.get_today();
-                    df.set_value([today, today]);
-                    report.refresh();
-                });
-            }
-        }, 400);
-    }
+    ]
 };

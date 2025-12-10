@@ -12,11 +12,11 @@
     "modified": "2025-11-19 12:00:00.000000",
     "modified_by": "Administrator",
     "module": "Sabaa",
-    "name": "Delivery Note Report",
+    "name": "Custom Delivery Note",
     "owner": "Administrator",
     "prepared_report": 0,
     "ref_doctype": "Delivery Note",
-    "report_name": "Delivery Note Report",
+    "report_name": "Custom Delivery Note",
     "report_type": "Script Report",
     "roles": [
         {
