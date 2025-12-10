@@ -1,4 +1,4 @@
-frappe.query_reports["Delivery Summary"] = {
+frappe.query_reports["Custom Delivery Summary"] = {
 	filters: [
 		{
 			fieldname: "company",
@@ -31,7 +31,8 @@ frappe.query_reports["Delivery Summary"] = {
 				const to_date = frappe.query_report.get_filter_value("to_date");
 
 				return frappe.db.get_link_options("Delivery Note", txt, {
-					posting_date: ["between", [from_date, to_date]]
+					posting_date: ["between", [from_date, to_date]],
+					status: ["!=", "Draft"]
 				});
 			}
 		},

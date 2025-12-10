@@ -13,11 +13,11 @@
   "modified": "2025-01-01 00:00:00",
   "modified_by": "Administrator",
   "module": "Sabaa",
-  "name": "Delivery Summary",
+  "name": "Custom Delivery Summary",
   "owner": "Administrator",
   "prepared_report": 0,
   "ref_doctype": "Delivery Order",
-  "report_name": "Delivery Summary",
+  "report_name": "Custome Delivery Summary",
   "report_type": "Script Report",
   "roles": [
     {
