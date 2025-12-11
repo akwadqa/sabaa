@@ -1,4 +1,4 @@
-frappe.query_reports["Custom Delivery Summary"] = {
+frappe.query_reports["Custom Driver-Wise DN Summary"] = {
 	filters: [
 		{
 			fieldname: "company",
