@@ -148,9 +148,12 @@ app_include_js = "/assets/sabaa/js/overrides/print_utils.js"
 # }
 
 doc_events = {
-    "Purchase Order": {
-        "validate": "sabaa.override.purchase_order_gross_weight.calculate_total_gross_weight"
-    }
+	"Purchase Order": {
+		"validate": [
+			"sabaa.override.purchase_order_gross_weight.calculate_total_gross_weight",
+			"sabaa.override.purchase_order_pallet_qty.calculate_total_pallet_qty",
+		]
+	}
 }
 
 
