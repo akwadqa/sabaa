@@ -26,7 +26,7 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/sabaa/css/sabaa.css"
-# app_include_js = "/assets/sabaa/js/sabaa.js"
+app_include_js = "/assets/sabaa/js/overrides/print_utils.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/sabaa/css/sabaa.css"
