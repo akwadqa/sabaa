@@ -3,6 +3,7 @@
 
 import frappe
 from frappe import _
+from sabaa.utils import format_quantity_by_uoms
 
 def execute(filters=None):
     if not filters:
@@ -12,9 +13,6 @@ def execute(filters=None):
     uom_filter = filters.get("uom") or "Pcs"
     from_date = filters.get("from_date")
     to_date = filters.get("to_date")
-
-    if not item_code:
-        frappe.throw(_("Please select an Item."))
     
     uom_map = get_uom_conversion_map(item_code)    
 
@@ -39,7 +37,6 @@ def execute(filters=None):
           AND si.posting_date BETWEEN %s AND %s
     """, (item_code, from_date, to_date), as_dict=True)
 
-    frappe.log_error("sales_items", sales_items)
     
     customer_map = {}
 
@@ -60,13 +57,12 @@ def execute(filters=None):
     data = []
 
     for customer, info in customer_map.items():
-        total_pcs = info["total_pcs"]
-        total_pcs = int(total_pcs)
+        total_pcs = int(info["total_pcs"])
         total_value = info["total_value"]
 
         qty_for_rate = total_pcs / uom_map[uom_filter]
         avg_rate = (total_value / qty_for_rate) if qty_for_rate else 0
-        qty_str = format_qty(total_pcs, uom_map)        
+        qty_str = format_quantity_by_uoms(total_pcs, uom_map)        
 
         data.append({
             "customer": customer,
@@ -101,37 +97,3 @@ def get_uom_conversion_map(item_code):
         uom_map[row.uom] = row.conversion_factor
 
     return uom_map
-
-def format_qty(total_pcs, uom_map):
-    sorted_uoms = sorted(
-        uom_map.items(),
-        key=lambda x: x[1],
-        reverse=True
-    )
-
-    parts = []
-    remainder = int(total_pcs)
-
-    for uom, factor in sorted_uoms:
-        qty = remainder // factor
-        parts.append(f"{int(qty)} {uom}")
-        remainder = remainder % factor
-
-    return " - ".join(parts)
-
-@frappe.whitelist()
-def get_item_uoms(item_code):   
-    if not item_code:
-        return []
-
-    uoms = frappe.get_all(
-        "UOM Conversion Detail",
-        filters={"parent": item_code},
-        fields=["uom"]
-    )
-
-    if not uoms:
-        item = frappe.get_doc("Item", item_code)
-        return [item.stock_uom]
-
-    return [d.uom for d in uoms]

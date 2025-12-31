@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Akwad Programming and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Item-wise Sales & Stock Movement"] = {
+frappe.query_reports["Item Balance (UOM-wise)"] = {
 	"filters": [
 		{
 			fieldname: "from_date",
@@ -22,7 +22,6 @@ frappe.query_reports["Item-wise Sales & Stock Movement"] = {
 			label: __("Item"),
 			fieldtype: "Link",
 			options: "Item",
-			reqd: 1,
 			on_change: function() {
 				const item_code = frappe.query_report.get_filter_value("item_code");
 				const uom_filter = frappe.query_report.get_filter("uom");
@@ -46,39 +45,22 @@ frappe.query_reports["Item-wise Sales & Stock Movement"] = {
 			}
 		},
 		{
+			fieldname: "item_group",
+			label: __("Item Group"),
+			fieldtype: "Link",
+			options: "Item Group"
+		},
+		{
+			fieldname: "warehouse",
+			label: __("Warehouse"),
+			fieldtype: "Link",
+			options: "Warehouse"
+		},
+		{
 			fieldname: "uom",
 			label: __("UOM"),
 			fieldtype: "Select",
-			reqd: 1,
 			options: []
 		}
-	],
-
-	formatter: function (value, row, column, data, default_formatter) {
-    value = default_formatter(value, row, column, data);
-
-    if (column.fieldname === "customer" && data && data.customer) {
-        const from_date = frappe.query_report.get_filter_value("from_date");
-        const to_date = frappe.query_report.get_filter_value("to_date");
-        const item_code = frappe.query_report.get_filter_value("item_code");
-
-        const filters = {
-            customer: data.customer,
-            item_code: item_code,
-            from_date: from_date,
-            to_date: to_date
-        };
-
-        const query_string = frappe.utils.make_query_string(filters);
-
-        return `
-            <a href="/app/query-report/Item-wise Sales Register${query_string}"
-               target="_blank">
-                ${value}
-            </a>
-        `;
-    }
-
-    return value;
-}
+	]
 };
