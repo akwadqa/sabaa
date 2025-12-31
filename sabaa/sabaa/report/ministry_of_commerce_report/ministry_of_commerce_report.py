@@ -31,16 +31,16 @@ def get_columns():
             "width": 280,
         },
         {
-            "fieldname": "total_ton_qty",
-            "label": _("Current Qty (Ton)"),
-            "fieldtype": "Float",
+            "fieldname": "total_qty",
+            "label": _("Current Qty"),
+            "fieldtype": "Data",
             "width": 180,
         },
     ]
 
 
 def get_data(company, as_on_date):
-    # 1) Get all MoCI categories (Item Groups where parent is "MOCI Category")
+    # 1) Get all MoCI categories
     categories = frappe.get_all(
         "Item Group",
         filters={"parent_item_group": MOCI_PARENT_GROUP},
@@ -48,17 +48,21 @@ def get_data(company, as_on_date):
         order_by="name",
     )
 
-    totals_by_category = {c: 0 for c in categories}
-    uncategorized_total = 0
+    totals_by_category = {
+        c: {"kg": 0.0, "l": 0.0} for c in categories
+    }
 
-    # 2) Fetch balance qty per item_code as-of date, and bring item fields
+    uncategorized = {"kg": 0.0, "l": 0.0}
+
+    # 2) Fetch balance qty + weight info
     rows = frappe.db.sql(
         """
         SELECT
             sle.item_code AS item_code,
             SUM(sle.actual_qty) AS balance_qty,
             MAX(i.custom_moci_category) AS moci_category,
-            MAX(i.custom_unit_weight_in_tone) AS unit_ton
+            MAX(i.weight_uom) AS weight_uom,
+            MAX(i.weight_per_unit) AS weight_per_unit
         FROM `tabStock Ledger Entry` sle
         INNER JOIN `tabItem` i ON i.name = sle.item_code
         WHERE
@@ -72,32 +76,51 @@ def get_data(company, as_on_date):
         as_dict=True,
     )
 
+    # 3) Accumulate per category
     for r in rows:
         balance_qty = flt(r.get("balance_qty"))
-        unit_ton = flt(r.get("unit_ton"))  # tons per 1 default UOM (your field)
         category = r.get("moci_category")
+        weight_uom = r.get("weight_uom")
+        weight_per_unit = flt(r.get("weight_per_unit"))
 
-        ton_qty = balance_qty * unit_ton
+        total_weight = balance_qty * weight_per_unit
 
-        if category in totals_by_category:
-            totals_by_category[category] += ton_qty
-        else:
-            # Items without category, or category not under MOCI parent
-            uncategorized_total += ton_qty
+        target = totals_by_category.get(category) or uncategorized
 
-    # 3) Build report rows: show ALL categories even if 0
+        if weight_uom == "Gram":
+            target["kg"] += total_weight / 1000
+        elif weight_uom == "Milliliter":
+            target["l"] += total_weight / 1000
+
+    # 4) Build display rows (single column with labels)
     data = []
+
     for c in categories:
+        kg = flt(totals_by_category[c]["kg"], 3)
+        l = flt(totals_by_category[c]["l"], 3)
+
+        parts = []
+        if kg:
+            parts.append(f"{kg} Kg")
+        if l:
+            parts.append(f"{l} L")
+
         data.append({
             "moci_category": c,
-            "total_ton_qty": flt(totals_by_category.get(c)),
+            "total_qty": " / ".join(parts) if parts else "0",
         })
 
-    # Optional: show Uncategorized if it exists
-    if flt(uncategorized_total) != 0:
+    # Optional: Uncategorized
+    if uncategorized["kg"] or uncategorized["l"]:
+        parts = []
+        if uncategorized["kg"]:
+            parts.append(f"{flt(uncategorized['kg'], 3)} Kg")
+        if uncategorized["l"]:
+            parts.append(f"{flt(uncategorized['l'], 3)} L")
+
         data.append({
             "moci_category": _("Uncategorized / Not under MoCI"),
-            "total_ton_qty": flt(uncategorized_total),
+            "total_qty": " / ".join(parts),
         })
 
     return data

@@ -50,7 +50,7 @@ frappe.query_reports["Ministry Of Commerce Report"] = {
             return `<span style="font-weight:600;">${rendered}</span>`;
         }
 
-        if (column.fieldname === "total_ton_qty") {
+        if (column.fieldname === "total_qty") {
             // Use the already-formatted value to avoid JS errors
             return `
         <div class="text-end moci-ton-cell" style="font-weight:600;">
