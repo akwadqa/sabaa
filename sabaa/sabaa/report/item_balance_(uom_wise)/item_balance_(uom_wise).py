@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from sabaa.utils import format_quantity_by_uoms
-
+from frappe.utils import get_url_to_form, escape_html
 
 def execute(filters=None):
     columns = get_columns(filters)
@@ -12,14 +12,16 @@ def execute(filters=None):
     return columns, data
 
 def get_columns(filters):
+    company = frappe.defaults.get_user_default("Company")
+    currency= frappe.get_cached_value("Company", company, "default_currency")
+
     return [
         {
             "label": _("Item"),
-            "fieldname": "item_code",
-            "fieldtype": "Link",
-            "options": "Item",
-            "width": 230
-        },       
+            "fieldname": "item_name",
+            "fieldtype": "Data",
+            "width": 250
+        },      
         {
             "label": _("Item Group"),
             "fieldname": "item_group",
@@ -35,29 +37,22 @@ def get_columns(filters):
             "width": 180
         },
         {
-            "label": _("Stock UOM"),
-            "fieldname": "stock_uom",
-            "fieldtype": "Link",
-            "options": "UOM",
-            "width": 100
-        },
-        {
             "label": _("Quantity"),
             "fieldname": "qty_display",
             "fieldtype": "Data",
             "width": 200
         },
         {
-            "label": _("Valuation Rate (Per UOM)"),
+            "label": _("Valuation Rate ({0})").format(currency),
             "fieldname": "rate",
-            "fieldtype": "Currency",
-            "width": 200
+            "fieldtype": "Data",
+            "width": 180
         },
         {
-            "label": _("Stock Value"),
+            "label": _("Stock Value ({0})").format(currency),
             "fieldname": "value",
-            "fieldtype": "Currency",
-            "width": 130
+            "fieldtype": "Data",
+            "width": 180
         }
     ]
 
@@ -85,6 +80,7 @@ def get_data(filters):
         f"""
         SELECT
             b.item_code,
+            i.item_name,
             i.item_group,
             i.stock_uom,
             b.warehouse,
@@ -108,8 +104,6 @@ def get_data(filters):
         as_dict=True
     )
 
-    frappe.log_error("Item Balance UOM Wise Report Data", rows)
-
     return build_rows(rows, filters)
 
 def build_rows(rows, filters):
@@ -131,14 +125,22 @@ def build_rows(rows, filters):
             row.stock_uom
         )
 
+        item_link = get_item_link(row.item_code, row.item_name)
+
+        selected_uom = filters.get("uom") or row.stock_uom
+        rate_display = f"{frappe.utils.fmt_money(rate, currency=None)} ({selected_uom})"
+
+        stock_value = row.actual_qty * row.valuation_rate
+        stock_value_display = frappe.utils.fmt_money(stock_value, currency=None)
+
         data.append({
-            "item_code": row.item_code,
+            "item_name": item_link,
             "item_group": row.item_group,
             "warehouse": row.warehouse,
             "stock_uom": row.stock_uom,
             "qty_display": qty_display,
-            "rate": rate, # valuation_rate * conversion factor of selected UOM or stock UOM
-            "value": row.actual_qty * row.valuation_rate
+            "rate": rate_display, # valuation_rate * conversion factor of selected UOM or stock UOM
+            "value": stock_value_display
         })
 
     return data
@@ -179,3 +181,11 @@ def get_rate_per_uom(valuation_rate, conversions, selected_uom, stock_uom):
             return valuation_rate * row["conversion_factor"]
 
     return valuation_rate
+
+def get_item_link(item_code, item_name):
+    return (
+        f'<a href="{get_url_to_form("Item", item_code)}" '
+        f'target="_blank" rel="noopener noreferrer">'
+        f'{escape_html(item_name)}'
+        f'</a>'
+    )

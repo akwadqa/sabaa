@@ -14,12 +14,12 @@ def execute(filters=None):
     from_date = filters.get("from_date")
     to_date = filters.get("to_date")
     
-    uom_map = get_uom_conversion_map(item_code)    
+    uom_map = get_uom_conversion_map(item_code)  
 
     columns = [
         {"label": _("Customer"), "fieldname": "customer", "fieldtype": "Data", "width": 200},
         {"label": _("Quantity"), "fieldname": "quantity", "fieldtype": "Data", "width": 300},
-        {"label": _("Avg Rate (Per {0})").format(uom_filter), "fieldname": "rate", "fieldtype": "Currency", "width": 200},
+        {"label": _("Avg. Rate (Per {0})").format(uom_filter), "fieldname": "rate", "fieldtype": "Currency", "width": 200},
         {"label": _("Selling Value"), "fieldname": "value", "fieldtype": "Currency", "width": 120},
     ]
 
@@ -40,6 +40,9 @@ def execute(filters=None):
     
     customer_map = {}
 
+    total_pcs_all = 0
+    total_value_all = 0.0
+
     for row in sales_items:
         customer = row.customer
 
@@ -48,11 +51,14 @@ def execute(filters=None):
         if customer not in customer_map:
             customer_map[customer] = {
                 "total_pcs": 0,
-                "total_value": 0.0 # quantity * Selling rate
+                "total_value": 0.0
             }
 
         customer_map[customer]["total_pcs"] += qty_pcs
         customer_map[customer]["total_value"] += row.amount
+
+        total_pcs_all += qty_pcs
+        total_value_all += row.amount
 
     data = []
 
@@ -71,9 +77,19 @@ def execute(filters=None):
             "value": total_value
         })
 
+    # Totals Row
+    total_qty_str = format_quantity_by_uoms(int(total_pcs_all), uom_map)
+    avg_rate_total = (total_value_all / (total_pcs_all / uom_map[uom_filter])) if total_pcs_all else 0
+
+    data.append({
+        "customer": "Total",
+        "quantity": total_qty_str,
+        "rate": avg_rate_total,
+        "value": total_value_all
+    })
+
     return columns, data
 
-@frappe.whitelist()
 def get_uom_conversion_map(item_code):
     """
     Returns:
@@ -87,13 +103,13 @@ def get_uom_conversion_map(item_code):
         SELECT uom, conversion_factor
         FROM `tabUOM Conversion Detail`
         WHERE parent = %s
+        ORDER BY conversion_factor DESC
     """, item_code, as_dict=True)
 
-    stock_uom = frappe.db.get_value("Item", item_code, "stock_uom")
+    # stock_uom = frappe.db.get_value("Item", item_code, "stock_uom")
 
-    uom_map = {stock_uom: 1}
+    # uom_map = {stock_uom: 1}
 
-    for row in conversions:
-        uom_map[row.uom] = row.conversion_factor
+    uom_map = {row["uom"]: row["conversion_factor"] for row in conversions}
 
     return uom_map

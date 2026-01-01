@@ -1,5 +1,5 @@
 {
- "add_total_row": 1,
+ "add_total_row": 0,
  "add_translate_data": 0,
  "columns": [],
  "creation": "2025-12-29 12:45:26.614293",
@@ -10,7 +10,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2025-12-29 12:45:26.614293",
+ "modified": "2026-01-01 13:50:39.861107",
  "modified_by": "Administrator",
  "module": "Sabaa",
  "name": "Item-wise Sales & Stock Movement",
