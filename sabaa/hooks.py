@@ -47,6 +47,12 @@ app_include_js = [
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 
+doctype_js = {
+    "Purchase Order": "public/js/overrides/purchase_order_moq.js",
+    "Item": "public/js/overrides/purchase_order_moq.js",
+}
+
+
 
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -155,7 +161,11 @@ doc_events = {
 			"sabaa.override.purchase_order_gross_weight.calculate_total_gross_weight",
 			"sabaa.override.purchase_order_pallet_qty.calculate_total_pallet_qty",
 		]
-	}
+	},
+ 
+  	"Sales Invoice": {
+        "validate": "sabaa.override.sales_invoice_under_price_list.validate_under_price_list_rate"
+    }
 }
 
 
