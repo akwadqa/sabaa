@@ -2,3 +2,4 @@ sabaa.patches.add_expense_date_field_to_expense_entry_detail
 sabaa.patches.create_new_letterhead
 sabaa.patches.add_driver_related_fields_to_sales_invoice
 sabaa.patches.add_under_cost_field
+sabaa.patches.create_under_price_list_field
