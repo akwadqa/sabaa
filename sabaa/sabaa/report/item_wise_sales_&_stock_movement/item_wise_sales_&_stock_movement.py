@@ -26,7 +26,8 @@ def execute(filters=None):
     sales_items = frappe.db.sql("""
         SELECT
             sii.parent AS invoice,
-            si.customer,
+            si.customer AS customer_id, 
+            si.customer_name AS customer,
             sii.qty,
             sii.amount,
             sii.uom
@@ -51,7 +52,8 @@ def execute(filters=None):
         if customer not in customer_map:
             customer_map[customer] = {
                 "total_pcs": 0,
-                "total_value": 0.0
+                "total_value": 0.0,
+                "customer_id": row.customer_id
             }
 
         customer_map[customer]["total_pcs"] += qty_pcs
@@ -65,12 +67,14 @@ def execute(filters=None):
     for customer, info in customer_map.items():
         total_pcs = int(info["total_pcs"])
         total_value = info["total_value"]
+        customer_id = info["customer_id"]
 
         qty_for_rate = total_pcs / uom_map[uom_filter]
         avg_rate = (total_value / qty_for_rate) if qty_for_rate else 0
         qty_str = format_quantity_by_uoms(total_pcs, uom_map)        
 
         data.append({
+            "customer_id": customer_id,
             "customer": customer,
             "quantity": qty_str,
             "rate": avg_rate,

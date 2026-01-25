@@ -67,7 +67,7 @@ frappe.query_reports["Item-wise Sales & Stock Movement"] = {
 			const item_code = frappe.query_report.get_filter_value("item_code");
 
 			const filters = {
-				customer: data.customer,
+				customer: data.customer_id,
 				item_code: item_code,
 				from_date: from_date,
 				to_date: to_date
