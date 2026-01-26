@@ -3,7 +3,7 @@
 
 import frappe
 from frappe import _
-from sabaa.utils import format_quantity_by_uoms
+from sabaa.utils import format_quantity_by_uoms, get_uom_conversion_map
 
 def execute(filters=None):
     if not filters:
@@ -93,27 +93,3 @@ def execute(filters=None):
     })
 
     return columns, data
-
-def get_uom_conversion_map(item_code):
-    """
-    Returns:
-    {
-        "Pcs": 1,
-        "Box": 6,
-        "Ctn": 24
-    }
-    """
-    conversions = frappe.db.sql("""
-        SELECT uom, conversion_factor
-        FROM `tabUOM Conversion Detail`
-        WHERE parent = %s
-        ORDER BY conversion_factor DESC
-    """, item_code, as_dict=True)
-
-    # stock_uom = frappe.db.get_value("Item", item_code, "stock_uom")
-
-    # uom_map = {stock_uom: 1}
-
-    uom_map = {row["uom"]: row["conversion_factor"] for row in conversions}
-
-    return uom_map
