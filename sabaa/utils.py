@@ -23,7 +23,7 @@ def format_quantity_by_uoms(
     # Sort largest factor first
     sorted_uoms = sorted(items, key=lambda x: x[1], reverse=True)
 
-    remainder = int(total_qty)
+    remainder = abs(int(total_qty))
     parts = []
 
     for uom, factor in sorted_uoms:
