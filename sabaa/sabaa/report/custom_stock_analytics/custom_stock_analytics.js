@@ -91,7 +91,7 @@ frappe.query_reports["Custom Stock Analytics"] = {
 			events: {
 				onCheckRow: function (data) {
 					let row_name = data[2].content;
-					let row_values = data.slice(7).map(function (column) {
+					let row_values = data.slice(8).map(function (column) {
 						return column.content;
 					});
 					let entry = {

@@ -42,6 +42,7 @@ def get_columns(filters):
         },
         {"label": _("Brand"), "fieldname": "brand", "fieldtype": "Data", "width": 120},
         {"label": _("UOM"), "fieldname": "uom", "fieldtype": "Data", "width": 120},
+        {"label": _("Barcode"), "fieldname": "barcode", "fieldtype": "Data", "width": 180},
     ]
 
     ranges = get_period_date_ranges(filters)
@@ -186,6 +187,7 @@ def get_data(filters):
     ranges = get_period_date_ranges(filters)
 
     item_uom_map = get_item_uom_map(list(item_details.keys()))
+    item_barcode_map = get_item_barcode_map(list(item_details.keys()))
 
     today = getdate()
 
@@ -196,7 +198,36 @@ def get_data(filters):
             "item_group": item_data.item_group,
             "uom": item_data.stock_uom,
             "brand": item_data.brand,
+            "barcode": "",
         }
+
+        # Barcode depends on the UOMs (big UOM + stock UOM if available)
+        uom_rows = item_uom_map.get(item_data.name) or []
+        big_uom = None
+        for r in uom_rows:
+            if r.conversion_factor and r.conversion_factor > 1:
+                if not big_uom or r.conversion_factor > big_uom.conversion_factor:
+                    big_uom = r
+
+        barcodes = item_barcode_map.get(item_data.name) or {}
+        barcode_parts = []
+
+        if big_uom:
+            b = (barcodes.get(big_uom.uom) or "").strip()
+            if b:
+                barcode_parts.append(f"{big_uom.uom}: {b}")
+
+        b_stock = (barcodes.get(item_data.stock_uom) or "").strip()
+        if b_stock:
+            barcode_parts.append(f"{item_data.stock_uom}: {b_stock}")
+
+        if not barcode_parts:
+            fallback = (barcodes.get("__first__") or "").strip()
+            if fallback:
+                barcode_parts.append(fallback)
+
+        row["barcode"] = " | ".join(barcode_parts)
+
         previous_period_value = 0.0
 
         for start_date, end_date in ranges:
@@ -233,7 +264,7 @@ def get_data(filters):
 
 
 def get_chart_data(columns):
-    labels = [d.get("label") for d in columns[5:]]
+    labels = [d.get("label") for d in columns[6:]]
     chart = {"data": {"labels": labels, "datasets": []}}
     chart["type"] = "line"
 
@@ -404,3 +435,42 @@ def format_qty_with_uom_breakdown(item_code, stock_uom, qty, item_uom_map):
         parts.append(f"0 {stock_uom}")
 
     return ", ".join(parts)
+
+
+# ---------- NEW HELPERS FOR BARCODE BY UOM ----------
+
+
+def get_item_barcode_map(item_codes):
+    """
+    Return:
+      { item_code: { uom: barcode, '__first__': first_barcode } }
+    from the Item Barcode child table.
+    """
+    if not item_codes:
+        return {}
+
+    rows = frappe.get_all(
+        "Item Barcode",
+        filters={"parent": ("in", item_codes)},
+        fields=["parent", "barcode", "uom", "idx"],
+        order_by="parent asc, idx asc",
+    )
+
+    out = {}
+    for r in rows:
+        item_code = r.parent
+        barcode = (r.barcode or "").strip()
+        uom = (r.uom or "").strip()
+
+        if not barcode:
+            continue
+
+        out.setdefault(item_code, {})
+
+        if "__first__" not in out[item_code]:
+            out[item_code]["__first__"] = barcode
+
+        if uom and uom not in out[item_code]:
+            out[item_code][uom] = barcode
+
+    return out
