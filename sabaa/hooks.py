@@ -160,11 +160,20 @@ doc_events = {
 		"validate": [
 			"sabaa.override.purchase_order_gross_weight.calculate_total_gross_weight",
 			"sabaa.override.purchase_order_pallet_qty.calculate_total_pallet_qty",
+			"sabaa.override.total_qty_by_uom.calculate_total_qty_by_uom"
 		]
 	},
- 
+	"Purchase Invoice": {
+        "validate": ["sabaa.override.total_qty_by_uom.calculate_total_qty_by_uom"]
+    }, 
   	"Sales Invoice": {
-        "validate": "sabaa.override.sales_invoice_under_price_list.validate_under_price_list_rate"
+        "validate": [
+			"sabaa.override.sales_invoice_under_price_list.validate_under_price_list_rate",
+			"sabaa.override.total_qty_by_uom.calculate_total_qty_by_uom"
+		]
+    },
+	"Delivery Note": {
+        "validate": ["sabaa.override.total_qty_by_uom.calculate_total_qty_by_uom"]
     }
 }
 

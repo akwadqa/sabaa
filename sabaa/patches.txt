@@ -3,3 +3,5 @@ sabaa.patches.create_new_letterhead
 sabaa.patches.add_driver_related_fields_to_sales_invoice
 sabaa.patches.add_under_cost_field
 sabaa.patches.create_under_price_list_field
+sabaa.patches.add_total_qty_by_uom_field
+sabaa.patches.hide_total_qty_field
