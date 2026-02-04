@@ -76,7 +76,7 @@ frappe.query_reports["Item-wise Sales & Stock Movement"] = {
 			const query_string = frappe.utils.make_query_string(filters);
 
 			return `
-            <a href="/app/query-report/Item-wise Sales Register${query_string}"
+            <a href="/app/query-report/Saba Sales Register${query_string}"
                target="_blank">
                 ${value}
             </a>
