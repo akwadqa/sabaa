@@ -78,6 +78,12 @@ frappe.query_reports["Saba Sales Register"] = {
 			fieldtype: "Check",
 			default: 0,
 		},
+		{
+			fieldname: "include_returns",
+			label: __("Include Returns"),
+			fieldtype: "Check",
+			default: 0
+		}
 	],
 };
 
