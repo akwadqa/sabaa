@@ -202,32 +202,40 @@ def get_data(filters):
         }
 
         # Barcode depends on the UOMs (big UOM + stock UOM if available)
-        uom_rows = item_uom_map.get(item_data.name) or []
-        big_uom = None
-        for r in uom_rows:
-            if r.conversion_factor and r.conversion_factor > 1:
-                if not big_uom or r.conversion_factor > big_uom.conversion_factor:
-                    big_uom = r
+        # uom_rows = item_uom_map.get(item_data.name) or []
+        # big_uom = None
+        # for r in uom_rows:
+        #     if r.conversion_factor and r.conversion_factor > 1:
+        #         if not big_uom or r.conversion_factor > big_uom.conversion_factor:
+        #             big_uom = r
+
+        # barcodes = item_barcode_map.get(item_data.name) or {}
+        # barcode_parts = []
+
+        # if big_uom:
+        #     b = (barcodes.get(big_uom.uom) or "").strip()
+        #     if b:
+        #         barcode_parts.append(f"{big_uom.uom}: {b}")
+
+        # b_stock = (barcodes.get(item_data.stock_uom) or "").strip()
+        # if b_stock:
+        #     barcode_parts.append(f"{item_data.stock_uom}: {b_stock}")
+
+        # if not barcode_parts:
+        #     fallback = (barcodes.get("__first__") or "").strip()
+        #     if fallback:
+        #         barcode_parts.append(fallback)
+
+        # row["barcode"] = " | ".join(barcode_parts)
 
         barcodes = item_barcode_map.get(item_data.name) or {}
-        barcode_parts = []
-
-        if big_uom:
-            b = (barcodes.get(big_uom.uom) or "").strip()
-            if b:
-                barcode_parts.append(f"{big_uom.uom}: {b}")
-
         b_stock = (barcodes.get(item_data.stock_uom) or "").strip()
+
         if b_stock:
-            barcode_parts.append(f"{item_data.stock_uom}: {b_stock}")
-
-        if not barcode_parts:
-            fallback = (barcodes.get("__first__") or "").strip()
-            if fallback:
-                barcode_parts.append(fallback)
-
-        row["barcode"] = " | ".join(barcode_parts)
-
+           row["barcode"] = b_stock
+        else:
+           row["barcode"] = (barcodes.get("__first__") or "").strip()
+           
         previous_period_value = 0.0
 
         for start_date, end_date in ranges:
