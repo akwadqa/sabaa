@@ -8,6 +8,7 @@ from frappe.query_builder.functions import IfNull
 from frappe.utils import add_days, add_to_date, flt, getdate
 
 from erpnext.accounts.utils import get_fiscal_year
+from sabaa.utils import format_quantity_by_uoms, get_uom_conversion_map
 
 
 def execute(filters=None):
@@ -109,13 +110,34 @@ class Analytics:
                 }
             )
 
+        fieldtype = "Float"
+
+        if (
+            self.filters.tree_type == "Item"
+            and self.filters.value_quantity == "Quantity"
+        ):
+            fieldtype = "Data"
+
         for end_date in self.periodic_daterange:
             period = self.get_period(end_date)
             self.columns.append(
-                {"label": _(period), "fieldname": scrub(period), "fieldtype": "Float", "width": 120}
+                {"label": _(period), "fieldname": scrub(period), "fieldtype": fieldtype, "width": 200}
             )
 
-        self.columns.append({"label": _("Total"), "fieldname": "total", "fieldtype": "Float", "width": 120})
+        total_fieldtype = "Float"
+
+        if (
+            self.filters.tree_type == "Item"
+            and self.filters.value_quantity == "Quantity"
+        ):
+            total_fieldtype = "Data"
+
+        self.columns.append({
+            "label": _("Total"),
+            "fieldname": "total",
+            "fieldtype": total_fieldtype,
+            "width": 200
+        })
 
     def get_data(self):
         if self.filters.tree_type in ["Customer", "Supplier"]:
@@ -232,6 +254,15 @@ class Analytics:
 
         self.entries = query.run(as_dict=True)
 
+        # Build UOM conversion map per item
+        self.item_uom_map = {}
+
+        item_codes = {d.entity for d in self.entries}
+
+        for item_code in item_codes:
+            uom_map = get_uom_conversion_map(item_code)
+            self.item_uom_map[item_code] = uom_map
+
         self.entity_names = {}
         for d in self.entries:
             self.entity_names.setdefault(d.entity, d.entity_name)
@@ -328,10 +359,38 @@ class Analytics:
             for end_date in self.periodic_daterange:
                 period = self.get_period(end_date)
                 amount = flt(period_data.get(period, 0.0))
-                row[scrub(period)] = amount
+
+                # Format quantity by UOM only for Item + Quantity mode
+                if (
+                    self.filters.tree_type == "Item"
+                    and self.filters.value_quantity == "Quantity"
+                ):
+                    conversions = self.item_uom_map.get(entity, {})
+                    stock_uom = period_data.get("stock_uom")
+                    display_value = format_quantity_by_uoms(
+                        amount,
+                        conversions,
+                        stock_uom
+                    )
+                    row[scrub(period)] = display_value
+                else:
+                    row[scrub(period)] = amount
+
                 total += amount
 
-            row["total"] = total
+            if (
+                self.filters.tree_type == "Item"
+                and self.filters.value_quantity == "Quantity"
+            ):
+                conversions = self.item_uom_map.get(entity, {})
+                stock_uom = period_data.get("stock_uom")
+                row["total"] = format_quantity_by_uoms(
+                    total,
+                    conversions,
+                    stock_uom
+                )
+            else:
+                row["total"] = total
 
             if self.filters.tree_type == "Item":
                 row["stock_uom"] = period_data.get("stock_uom")
