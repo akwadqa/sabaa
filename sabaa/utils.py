@@ -11,6 +11,9 @@ def format_quantity_by_uoms(
     - list of dicts: [{"uom": "CTN", "conversion_factor": 24}, ...]
     """
 
+    if total_qty == 0:
+        return "0"
+
     if isinstance(conversions, dict):
         items = conversions.items()
     else:
