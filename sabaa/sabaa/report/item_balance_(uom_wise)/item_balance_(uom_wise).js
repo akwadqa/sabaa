@@ -16,6 +16,12 @@ frappe.query_reports["Item Balance (UOM-wise)"] = {
 			fieldtype: "Date",
 			default: frappe.datetime.get_today(),
 			reqd: 1,
+		},		
+		{
+			fieldname: "item_group",
+			label: __("Item Group"),
+			fieldtype: "Link",
+			options: "Item Group"
 		},
 		{
 			fieldname: "item_code",
@@ -43,12 +49,6 @@ frappe.query_reports["Item Balance (UOM-wise)"] = {
 					uom_filter.refresh();
 				}
 			}
-		},
-		{
-			fieldname: "item_group",
-			label: __("Item Group"),
-			fieldtype: "Link",
-			options: "Item Group"
 		},
 		{
 			fieldname: "warehouse",
