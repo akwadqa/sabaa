@@ -16,6 +16,7 @@ from erpnext.selling.report.item_wise_sales_history.item_wise_sales_history impo
 )
 from sabaa.utils import format_quantity_by_uoms, get_uom_conversion_map
 
+UOM_DISPLAY_ORDER = ["Ctn", "Box", "Set", "Outer", "Pcs"]
 
 def execute(filters=None):
     return _execute(filters)
@@ -60,6 +61,7 @@ def _execute(filters=None, additional_table_columns=None, additional_conditions=
             delivery_note = d.parent
 
         row = {
+            "item_code": d.item_code,
             "item_name": f'<a href="{frappe.utils.get_url_to_form("Item", d.item_code)}" target="_blank">{d.si_item_name if d.si_item_name else d.i_item_name}</a>',
             "invoice": d.parent,
             "posting_date": d.posting_date,
@@ -126,6 +128,8 @@ def _execute(filters=None, additional_table_columns=None, additional_conditions=
 
     if filters.get("group_by") and item_list:
         total_row = total_row_map.get(prev_group_by_value or d.get("item_name"))
+        if total_row.get("_uom_totals"):
+            total_row["qty_by_uom"] = format_group_uom_display(total_row["_uom_totals"])
         total_row["percent_gt"] = flt(total_row["total"] / grand_total * 100)
         data.append(total_row)
         data.append({})
@@ -191,7 +195,7 @@ def get_columns(additional_table_columns, filters):
             "label": _("Quantity (UOM Wise)"),
             "fieldname": "qty_by_uom",
             "fieldtype": "Data",
-            "width": 180,
+            "width": 200,
         },			
         {"label": _("Stock Qty"), "fieldname": "stock_qty", "fieldtype": "Float", "width": 100},
         {
@@ -590,6 +594,8 @@ def add_total_row(
     if prev_group_by_value != item.get(group_by_field, ""):
         if prev_group_by_value:
             total_row = total_row_map.get(prev_group_by_value)
+            if total_row.get("_uom_totals"):
+                total_row["qty_by_uom"] = format_group_uom_display(total_row["_uom_totals"])
             data.append(total_row)
             data.append({})
             add_sub_total_row(total_row, total_row_map, "total_row", tax_columns)
@@ -606,6 +612,7 @@ def add_total_row(
                 "total_tax": 0.0,
                 "total": 0.0,
                 "percent_gt": 0.0,
+                "_uom_totals": {},
             },
         )
 
@@ -619,6 +626,7 @@ def add_total_row(
                 "total_tax": 0.0,
                 "total": 0.0,
                 "percent_gt": 0.0,
+                "_uom_totals": {},
             },
         )
 
@@ -659,15 +667,40 @@ def get_group_by_and_display_fields(filters):
 
 def add_sub_total_row(item, total_row_map, group_by_value, tax_columns):
     total_row = total_row_map.get(group_by_value)
+
     total_row["stock_qty"] += item["stock_qty"]
     total_row["amount"] += item["amount"]
     total_row["total_tax"] += item["total_tax"]
     total_row["total"] += item["total"]
     total_row["percent_gt"] += item["percent_gt"]
 
-    for tax in tax_columns:
-        total_row.setdefault(f"{tax}_amount", 0.0)
-        total_row[f"{tax}_amount"] += flt(item[f"{tax}_amount"])
+    # accumulate using conversion map
+    item_code = item.get("item_code")
+    stock_qty = item.get("stock_qty") or 0
+    stock_uom = item.get("stock_uom")
+
+    if item_code and stock_qty:
+        conversion_map = get_uom_conversion_map(item_code)
+
+        if not conversion_map:
+            conversion_map = {stock_uom: 1}
+
+        sorted_uoms = sorted(conversion_map.items(), key=lambda x: -x[1])
+
+        remaining_qty = stock_qty
+
+        for uom, factor in sorted_uoms:
+            if factor <= 0:
+                continue
+
+            uom_qty = int(remaining_qty / factor)
+
+            if uom_qty:
+                total_row.setdefault("_uom_totals", {})
+                total_row["_uom_totals"].setdefault(uom, 0)
+                total_row["_uom_totals"][uom] += uom_qty
+
+                remaining_qty -= uom_qty * factor
 
 def get_qty_by_uom_display(item_code, stock_qty, stock_uom, cache):
     """
@@ -701,3 +734,13 @@ def get_qty_by_uom_display(item_code, stock_qty, stock_uom, cache):
         qty_str = f"- {qty_str}"
 
     return qty_str
+
+def format_group_uom_display(uom_totals):
+    parts = []
+
+    for uom in UOM_DISPLAY_ORDER:
+        qty = uom_totals.get(uom, 0)
+        if qty:
+            parts.append(f"{qty:g} {uom}")
+
+    return " - ".join(parts)
