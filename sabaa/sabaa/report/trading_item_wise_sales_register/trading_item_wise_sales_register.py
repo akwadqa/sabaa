@@ -645,14 +645,14 @@ def get_display_value(filters, group_by_field, item):
 
 def get_group_by_and_display_fields(filters):
     if filters.get("group_by") == "Item":
-        group_by_field = "item_code"
+        group_by_field = "item_name"
         subtotal_display_field = "invoice"
     elif filters.get("group_by") == "Invoice":
         group_by_field = "parent"
-        subtotal_display_field = "item_code"
+        subtotal_display_field = "item_name"
     else:
         group_by_field = frappe.scrub(filters.get("group_by"))
-        subtotal_display_field = "item_code"
+        subtotal_display_field = "item_name"
 
     return group_by_field, subtotal_display_field
 

@@ -154,7 +154,7 @@ function toggle_invoice_filters() {
 
 		// Clear value only when switching to Invoice
 		if (is_invoice) {
-			frappe.query_report.set_filter_value(fieldname, null);
+			frappe.query_report.set_filter_value(fieldname, []);
 		}
 
 		filter.refresh();
