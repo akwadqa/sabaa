@@ -6,3 +6,4 @@ sabaa.patches.create_under_price_list_field
 sabaa.patches.add_total_qty_by_uom_field
 sabaa.patches.hide_total_qty_field
 sabaa.patches.add_bank_details_fields_to_sales_invoice
+sabaa.patches.add_custom_trucks_field_to_purchase_invoice
