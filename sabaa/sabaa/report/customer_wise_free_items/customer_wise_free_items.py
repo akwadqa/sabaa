@@ -22,20 +22,20 @@ def get_columns(filters):
 			"label": _("Customer"),
 			"fieldtype": "Data",
 			"fieldname": "customer",
-			"width": 250,
+			"width": 315,
 		},
 		{
 			"label": _("Item Code"),
 			"fieldtype": "Data",
 			"fieldname": "item_code",
 			"options": "Item",
-			"width": 225,
+			"width": 300,
 		},
 		{
 			"label": _("Item Name"), 
 			"fieldtype": "Data", 
 			"fieldname": "item_name", 
-			"width": 225
+			"width": 350
 		},
 		{
 			"label": _("Total Free Quantity"),
@@ -59,8 +59,8 @@ def data_query(filters):
 		.select(
 			sales_invoice.customer.as_("customer"),
 			invoice_item.item_code.as_("item_code"),
-			Sum(invoice_item.stock_uom).as_("stock_uom"),
-			invoice_item.stock_qty.as_("qty")
+			invoice_item.stock_uom.as_("stock_uom"),
+			Sum(invoice_item.stock_qty).as_("qty")
 		).where(sales_invoice.docstatus == 1)
 		.where(invoice_item.parenttype == "Sales Invoice")
 		.where( (invoice_item.is_free_item == 1) | (invoice_item.rate == 0) )
