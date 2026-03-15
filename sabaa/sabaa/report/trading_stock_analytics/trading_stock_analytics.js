@@ -1,4 +1,4 @@
-frappe.query_reports["Custom Stock Analytics"] = {
+frappe.query_reports["Trading Stock Analytics"] = {
 	filters: [
 		{
 			fieldname: "item_group",
