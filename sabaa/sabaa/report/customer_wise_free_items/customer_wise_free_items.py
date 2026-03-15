@@ -58,6 +58,7 @@ def data_query(filters):
 		.on(sales_invoice.name == invoice_item.parent)
 		.select(
 			sales_invoice.customer.as_("customer"),
+			sales_invoice.customer_name.as_("customer_name"),
 			invoice_item.item_code.as_("item_code"),
 			invoice_item.stock_uom.as_("stock_uom"),
 			Sum(invoice_item.stock_qty).as_("qty")
@@ -85,6 +86,7 @@ def data_query(filters):
 		f"""
 		SELECT
 			qty_query.customer AS customer,
+			qty_query.customer_name AS customer_name,
 			item.item_code AS item_code,
 			item.item_name AS item_name,
 			qty_query.stock_uom AS stock_uom,
@@ -120,7 +122,7 @@ def build_rows(rows, filters):
         )
 
 		item_code, item_name = get_item_links(row.item_code, row.item_name)
-		customer_name = get_customer_link(row.customer)
+		customer_name = get_customer_link(row.customer, row.customer_name)
 
 		data.append({
 			"customer": customer_name,
@@ -163,8 +165,7 @@ def get_item_links(item_code, item_name):
         f'</a>'
     )
 
-def get_customer_link(customer):
-    customer_name = frappe.db.get_value("Customer", customer, "customer_name")
+def get_customer_link(customer, customer_name):
     return (
         f'<a href="{get_url_to_form("Customer", customer)}" '
         f'target="_blank" rel="noopener noreferrer">'
