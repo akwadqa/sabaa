@@ -85,10 +85,11 @@ doctype_js = {
 # ----------
 
 # add methods and filters to jinja environment
-# jinja = {
-# 	"methods": "sabaa.utils.jinja_methods",
-# 	"filters": "sabaa.utils.jinja_filters"
-# }
+jinja = {
+ 	"methods": [
+		"sabaa.hooks_call.fetch_leave_balance"
+	]
+}
 
 # Installation
 # ------------

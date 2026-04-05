@@ -20,17 +20,48 @@ def execute():
                     "module": "Sabaa"
                 },
                 {
+                    "fieldname": "nationality",
+                    "label": _("Nationality"),
+                    "fieldtype": "Link",
+                    "options": "Nationality",
+                    "insert_after": "official_papers_section_1",
+                    "module": "Sabaa"
+                },
+                {
                     "fieldname": "custom_employee_qid",
                     "label": _("Employee QID"),
                     "fieldtype": "Data",
-                    "insert_after": "official_papers_section_1",
+                    "insert_after": "nationality",
+                    "module": "Sabaa"
+                },
+                {
+                    "fieldname": "qid_file",
+                    "label": _("QID File"),
+                    "fieldtype": "Attach",
+                    "insert_after": "custom_employee_qid",
+                    "module": "Sabaa"
+                },
+                {
+                    "fieldname": "column_1_official_papers",
+                    "fieldtype": "Column Break",
+                    "insert_after": "qid_file",
+                    "module": "Sabaa"
+                },
+                {
+                    "fieldname": "nationality_ar",
+                    "label": _("Nationality (AR)"),
+                    "fieldtype": "Data",
+                    "fetch_from":"nationality.nationality_ar",
+                    "fetch_if_empty":1,
+                    "read_only":1,
+                    "insert_after": "column_1_official_papers",
                     "module": "Sabaa"
                 },
                 {
                     "fieldname": "qid_expiry",
                     "label": _("QID Expiry"),
                     "fieldtype": "Date",
-                    "insert_after": "custom_employee_qid",
+                    "insert_after": "nationality_ar",
                     "module": "Sabaa"
                 },
                 {
@@ -41,27 +72,10 @@ def execute():
                     "module": "Sabaa"
                 },
                 {
-                    "fieldname": "nationality",
-                    "label": _("Nationality"),
-                    "fieldtype": "Link",
-                    "options": "Nationality",
+                    "fieldname": "official_papers_section_2",
+                    "label": _("Sponsorship and Place of Work"),
+                    "fieldtype": "Section Break",
                     "insert_after": "passport_file",
-                    "module": "Sabaa"
-                },
-                {
-                    "fieldname": "nationality_ar",
-                    "label": _("Nationality (AR)"),
-                    "fieldtype": "Data",
-                    "fetch_from":"nationality.nationality_ar",
-                    "fetch_if_empty":1,
-                    "read_only":1,
-                    "insert_after": "nationality",
-                    "module": "Sabaa"
-                },
-                {
-                    "fieldname": "column_1_official_papers",
-                    "fieldtype": "Column Break",
-                    "insert_after": "nationality_ar",
                     "module": "Sabaa"
                 },
                 {
@@ -69,7 +83,28 @@ def execute():
                     "label": _("Sponsorship"),
                     "fieldtype": "Link",
                     "options": "Place of Work and Sponsorship",
-                    "insert_after": "column_1_official_papers",
+                    "insert_after": "official_papers_section_2",
+                    "module": "Sabaa"
+                },
+                {
+                    "fieldname": "place_of_work",
+                    "label": _("Place of Work"),
+                    "fieldtype": "Link",
+                    "options": "Place of Work and Sponsorship",
+                    "insert_after": "sponsorship",
+                    "module": "Sabaa"
+                },
+                {
+                    "fieldname": "job_offer_letter",
+                    "label": _("Job Offer Letter"),
+                    "fieldtype": "Attach",
+                    "insert_after": "place_of_work",
+                    "module": "Sabaa"
+                },
+                {
+                    "fieldname": "column_2_official_papers",
+                    "fieldtype": "Column Break",
+                    "insert_after": "job_offer_letter",
                     "module": "Sabaa"
                 },
                 {
@@ -79,15 +114,7 @@ def execute():
                     "fetch_from":"sponsorship.sponsorship_ar",
                     "fetch_if_empty":1,
                     "read_only":1,
-                    "insert_after": "sponsorship",
-                    "module": "Sabaa"
-                },
-                {
-                    "fieldname": "place_of_work",
-                    "label": _("Place of Work"),
-                    "fieldtype": "Link",
-                    "options": "Place of Work and Sponsorship",
-                    "insert_after": "sponsorship_ar",
+                    "insert_after": "column_2_official_papers",
                     "module": "Sabaa"
                 },
                 {
@@ -97,28 +124,21 @@ def execute():
                     "fetch_from":"place_of_work.sponsorship_ar",
                     "fetch_if_empty":1,
                     "read_only":1,
-                    "insert_after": "place_of_work",
+                    "insert_after": "sponsorship_ar",
                     "module": "Sabaa"
                 },
                 {
-                    "fieldname": "job_offer_letter",
-                    "label": _("Job Offer Letter"),
-                    "fieldtype": "Attach",
-                    "insert_after": "place_of_work_ar",
-                    "module": "Sabaa"
-                },
-                {
-                    "fieldname": "official_papers_section_2",
+                    "fieldname": "official_papers_section_3",
                     "label": _("Health Insurance"),
                     "fieldtype": "Section Break",
-                    "insert_after": "job_offer_letter",
+                    "insert_after": "place_of_work_ar",
                     "module": "Sabaa"
                 },
                 {
                     "fieldname": "health_insurance_expiry",
                     "label": _("Health Insurance Expiry"),
                     "fieldtype": "Date",
-                    "insert_after": "official_papers_section_2",
+                    "insert_after": "official_papers_section_3",
                     "module": "Sabaa"
                 },
                 {
