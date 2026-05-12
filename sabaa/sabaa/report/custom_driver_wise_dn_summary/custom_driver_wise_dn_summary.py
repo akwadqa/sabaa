@@ -73,7 +73,7 @@ def get_data(filters):
 
 	# Driver
 	if filters.get("driver_name"):
-		conditions.append("dn.driver_name = %(driver_name)s")
+		conditions.append("dn.driver = %(driver_name)s")
 		params["driver_name"] = filters["driver_name"]
 
 	# Warehouse
