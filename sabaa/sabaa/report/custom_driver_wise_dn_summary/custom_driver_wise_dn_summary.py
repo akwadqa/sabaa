@@ -47,6 +47,10 @@ def get_data(filters):
 	conditions = []
 	params = {}
 
+	# Exclude Cancelled
+	conditions.append("dn.docstatus != %(docstatus)s")
+	params["docstatus"] = 2
+
 	# Company
 	if filters.get("company"):
 		conditions.append("dn.company = %(company)s")
