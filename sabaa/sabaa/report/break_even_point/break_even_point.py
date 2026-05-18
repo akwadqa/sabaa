@@ -74,14 +74,14 @@ def get_columns():
 			"label": _("Sales Proportion %"),
 			"fieldname": "sales_proportion",
 			"fieldtype": "Percent",
-			"width": 140,
+			"width": 150,
 		},
 		{
 			"label": _("Allocated Indirect Expenses"),
 			"fieldname": "allocated_indirect_expenses",
 			"fieldtype": "Currency",
 			"options": "currency",
-			"width": 200,
+			"width": 220,
 		},
 		{
 			"label": _("BEP (Value)"),
