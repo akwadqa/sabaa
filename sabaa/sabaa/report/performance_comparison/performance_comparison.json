@@ -13,11 +13,11 @@
  "modified": "2026-05-18 15:38:15.155952",
  "modified_by": "Administrator",
  "module": "Sabaa",
- "name": "Performance Comparison Report",
+ "name": "Performance Comparison",
  "owner": "Administrator",
  "prepared_report": 0,
  "ref_doctype": "GL Entry",
- "report_name": "Performance Comparison Report",
+ "report_name": "Performance Comparison",
  "report_type": "Script Report",
  "roles": [
   {

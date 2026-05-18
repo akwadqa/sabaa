@@ -1,7 +1,7 @@
 // Copyright (c) 2026, Akwad and contributors
 // License: GNU General Public License v3. See license.txt
 
-frappe.query_reports["Performance Comparison Report"] = {
+frappe.query_reports["Performance Comparison"] = {
 	filters: [
 		{
 			fieldname: "company",
@@ -176,7 +176,7 @@ frappe.query_reports["Performance Comparison Report"] = {
 (function () {
 	let fy = erpnext.utils.get_fiscal_year(frappe.datetime.get_today(), false, false);
 	if (fy) {
-		let filters = frappe.query_reports["Performance Comparison Report"].filters;
+		let filters = frappe.query_reports["Performance Comparison"].filters;
 		filters.forEach((f) => {
 			if (["from_fiscal_year", "to_fiscal_year"].includes(f.fieldname)) {
 				f.default = fy;
