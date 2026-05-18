@@ -4,10 +4,8 @@
 import frappe
 from frappe import _
 from frappe.utils import flt
-
 from erpnext.accounts.report.cash_flow.cash_flow import get_account_type_based_gl_data
 from erpnext.accounts.report.gross_profit.gross_profit import GrossProfitGenerator
-from erpnext.accounts.utils import  get_balance_on
 
 
 def execute(filters=None):
@@ -17,9 +15,24 @@ def execute(filters=None):
 	filters.currency = frappe.get_cached_value("Company", filters.company, "default_currency")
 
 	columns = get_columns()
-	data = get_data(filters)
+	data, total_indirect_expenses, total_selling_amount = get_data(filters)
 
-	return columns, data
+	report_summary = [
+		{
+			"label": _("Total Selling Amount"),
+			"value": total_selling_amount,
+			"datatype": "Currency",
+			"currency": filters.currency,
+		},
+		{
+			"label": _("Total Indirect Expenses"),
+			"value": total_indirect_expenses,
+			"datatype": "Currency",
+			"currency": filters.currency,
+		},
+	]
+
+	return columns, data, None, None, report_summary
 
 
 def get_columns():
@@ -114,8 +127,8 @@ def get_data(filters):
 	item_rows = gp_data.grouped_data
 
 	if not item_rows:
-		return []
-
+		return [], 0, 0
+	
 	indirect_expense_filters = frappe._dict(
 		{
 			"company": filters.company,
@@ -127,7 +140,7 @@ def get_data(filters):
 	)
 	total_indirect_expenses = abs(
 		flt(get_account_type_based_gl_data(filters.company, indirect_expense_filters))
-	)	
+	)
 
 	total_selling_amount = sum(flt(row.base_amount) for row in item_rows)
 
@@ -164,4 +177,4 @@ def get_data(filters):
 			)
 		)
 
-	return data
+	return data, total_indirect_expenses, total_selling_amount
