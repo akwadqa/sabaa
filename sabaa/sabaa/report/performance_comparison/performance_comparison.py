@@ -173,14 +173,14 @@ def execute(filters=None):
 			"width": 300,
 		},
 		{
-			"label": period_list[0]["label"],
+			"label": _("First Period") if (filters.comparison_type == "Custom" and filters.filter_based_on == "Date Range") else period_list[0]["label"],
 			"fieldname": "current_value",
 			"fieldtype": "Currency",
 			"options": "currency",
 			"width": 160,
 		},
 		{
-			"label": comparison_period_list[0]["label"],
+			"label": _("Second Period") if (filters.comparison_type == "Custom" and filters.filter_based_on == "Date Range") else comparison_period_list[0]["label"],
 			"fieldname": "comparison_value",
 			"fieldtype": "Currency",
 			"options": "currency",

@@ -221,4 +221,4 @@ def get_total_indirect_expenses(filters):
 		},
 	)
 
-	return abs(flt(total[0][0]) if total and total[0][0] else 0)
+	return flt(total[0][0]) if total and total[0][0] else 0
