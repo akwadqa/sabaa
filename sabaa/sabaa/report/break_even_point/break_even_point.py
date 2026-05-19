@@ -4,7 +4,6 @@
 import frappe
 from frappe import _
 from frappe.utils import flt
-from erpnext.accounts.report.cash_flow.cash_flow import get_account_type_based_gl_data
 from erpnext.accounts.report.gross_profit.gross_profit import GrossProfitGenerator
 
 
@@ -133,18 +132,7 @@ def get_data(filters):
 	if not item_rows:
 		return [], 0, 0
 	
-	indirect_expense_filters = frappe._dict(
-		{
-			"company": filters.company,
-			"start_date": filters.from_date,
-			"end_date": filters.to_date,
-			"account_type": "Indirect Expense",
-			"include_default_book_entries": 0,
-		}
-	)
-	total_indirect_expenses = abs(
-		flt(get_account_type_based_gl_data(filters.company, indirect_expense_filters))
-	)
+	total_indirect_expenses = get_total_indirect_expenses(filters)
 
 	data = []
 	for row in item_rows:
@@ -180,3 +168,57 @@ def get_data(filters):
 		)
 
 	return data, total_indirect_expenses, total_selling_amount
+
+
+def get_total_indirect_expenses(filters):
+	# Find all accounts typed as Indirect Expense, then expand to their full subtrees
+	roots = frappe.db.sql(
+		"""
+		SELECT lft, rgt
+		FROM `tabAccount`
+		WHERE company = %(company)s
+		  AND account_type = 'Indirect Expense'
+		""",
+		{"company": filters.company},
+		as_dict=1,
+	)
+
+	if not roots:
+		return 0
+
+	subtree_conditions = " OR ".join(
+		f"(lft >= {r.lft} AND rgt <= {r.rgt})" for r in roots
+	)
+
+	accounts = frappe.db.sql_list(
+		f"""
+		SELECT name FROM `tabAccount`
+		WHERE company = %(company)s
+		  AND is_group = 0
+		  AND ({subtree_conditions})
+		""",
+		{"company": filters.company},
+	)
+
+	if not accounts:
+		return 0
+
+	total = frappe.db.sql(
+		"""
+		SELECT SUM(debit) - SUM(credit)
+		FROM `tabGL Entry`
+		WHERE company = %(company)s
+		  AND posting_date BETWEEN %(from_date)s AND %(to_date)s
+		  AND voucher_type != 'Period Closing Voucher'
+		  AND is_cancelled = 0
+		  AND account IN %(accounts)s
+		""",
+		{
+			"company": filters.company,
+			"from_date": filters.from_date,
+			"to_date": filters.to_date,
+			"accounts": accounts,
+		},
+	)
+
+	return abs(flt(total[0][0]) if total and total[0][0] else 0)
