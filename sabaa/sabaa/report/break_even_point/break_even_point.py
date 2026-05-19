@@ -117,6 +117,10 @@ def get_data(filters):
 		}
 	)
 
+	# Total selling amount must always come from ALL items to compute correct proportions
+	all_items_data = GrossProfitGenerator(gp_filters)
+	total_selling_amount = sum(flt(row.base_amount) for row in all_items_data.grouped_data)
+
 	if filters.get("item_code"):
 		gp_filters.item_code = filters.item_code
 
@@ -141,8 +145,6 @@ def get_data(filters):
 	total_indirect_expenses = abs(
 		flt(get_account_type_based_gl_data(filters.company, indirect_expense_filters))
 	)
-
-	total_selling_amount = sum(flt(row.base_amount) for row in item_rows)
 
 	data = []
 	for row in item_rows:
