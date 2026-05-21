@@ -1,0 +1,31 @@
+{
+ "attach_files": "",
+ "attach_print": 0,
+ "channel": "Email",
+ "condition": "doc.status == \"Active\"",
+ "creation": "2026-05-21 14:57:42.329744",
+ "date_changed": "valid_upto",
+ "days_in_advance": 30,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee",
+ "enabled": 1,
+ "event": "Days Before",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<h3> Passport Expiry Alert </h3>\n<p> Employee {{ doc.name }}'s passport expires on {{ doc.valid_upto }}.</p>",
+ "message_type": "Markdown",
+ "modified": "2026-05-21 17:45:44.228429",
+ "modified_by": "Administrator",
+ "module": "Sabaa",
+ "name": "Employee Passport Expiry",
+ "owner": "Administrator",
+ "recipients": [
+  {
+   "receiver_by_role": "HR User"
+  }
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Passport Expires in 30 Days for {{ doc.name }}, {{ doc.employee_name }}"
+}

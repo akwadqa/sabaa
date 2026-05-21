@@ -1,0 +1,31 @@
+{
+ "attach_files": "",
+ "attach_print": 0,
+ "channel": "Email",
+ "condition": "doc.status == \"Active\"",
+ "creation": "2026-05-21 15:02:08.119915",
+ "date_changed": "health_insurance_expiry",
+ "days_in_advance": 30,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee",
+ "enabled": 1,
+ "event": "Days Before",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<h3> Health Insurance Expiry Alert </h3>\n<p> Employee {{ doc.name }}'s insurance expires on {{ doc.health_insurance_expiry }}.</p>",
+ "message_type": "Markdown",
+ "modified": "2026-05-21 17:46:06.089797",
+ "modified_by": "Administrator",
+ "module": "Sabaa",
+ "name": "Employee Health Insurance Expiry",
+ "owner": "Administrator",
+ "recipients": [
+  {
+   "receiver_by_role": "HR User"
+  }
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Health Insurance Expires in 30 Days for {{ doc.name }}, {{ doc.employee_name }}"
+}
