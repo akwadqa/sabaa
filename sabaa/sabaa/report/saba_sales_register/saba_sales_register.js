@@ -3,6 +3,26 @@
 
 
 frappe.query_reports["Saba Sales Register"] = {
+	onload(report) {
+		const custom_title = __("Sales Register");
+		report.page.set_title(custom_title);
+
+		const orig_print = report.print_report.bind(report);
+		report.print_report = async function (print_settings) {
+			const saved = report.report_name;
+			report.report_name = custom_title;
+			try { await orig_print(print_settings); }
+			finally { report.report_name = saved; }
+		};
+
+		const orig_pdf = report.pdf_report.bind(report);
+		report.pdf_report = async function (print_settings) {
+			const saved = report.report_name;
+			report.report_name = custom_title;
+			try { await orig_pdf(print_settings); }
+			finally { report.report_name = saved; }
+		};
+	},
 	filters: [
 		{
 			fieldname: "from_date",
