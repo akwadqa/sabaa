@@ -123,44 +123,71 @@ def get_sales_and_cogs(filters):
     return item_map
 
 def get_purchase_data(filters):
-    conditions = []
     values = filters
 
-    conditions += [
+    pi_conditions = [
         "pi.docstatus = 1",
         "pi.update_stock = 1",
         "pi.company = %(company)s",
         "pi.posting_date <= %(to_date)s"
     ]
 
+    pr_conditions = [
+        "pr.docstatus = 1",
+        "pr.company = %(company)s",
+        "pr.posting_date <= %(to_date)s"
+    ]
 
     if filters.item_code:
-        conditions.append("pii.item_code = %(item_code)s")
+        pi_conditions.append("pii.item_code = %(item_code)s")
+        pr_conditions.append("pri.item_code = %(item_code)s")
 
     if filters.item_group:
-        conditions.append("i.item_group = %(item_group)s")
+        pi_conditions.append("i.item_group = %(item_group)s")
+        pr_conditions.append("i.item_group = %(item_group)s")
 
     if filters.warehouse:
-        conditions.append("pii.warehouse = %(warehouse)s")
+        pi_conditions.append("pii.warehouse = %(warehouse)s")
+        pr_conditions.append("pri.warehouse = %(warehouse)s")
 
-    conditions_str = " AND ".join(conditions)
+    pi_conditions_str = " AND ".join(pi_conditions)
+    pr_conditions_str = " AND ".join(pr_conditions)
 
     query = f"""
         SELECT
-            pii.item_code,
-            pi.supplier,
-            SUM(pii.stock_qty) AS buy_qty
-        FROM `tabPurchase Invoice` pi
-        INNER JOIN `tabPurchase Invoice Item` pii
-            ON pii.parent = pi.name
-        INNER JOIN `tabItem` i
-            ON i.name = pii.item_code
-        WHERE {conditions_str}
+            item_code,
+            supplier,
+            SUM(buy_qty) AS buy_qty
+        FROM (
+            SELECT
+                pii.item_code AS item_code,
+                pi.supplier AS supplier,
+                pii.stock_qty AS buy_qty
+            FROM `tabPurchase Invoice` pi
+            INNER JOIN `tabPurchase Invoice Item` pii
+                ON pii.parent = pi.name
+            INNER JOIN `tabItem` i
+                ON i.name = pii.item_code
+            WHERE {pi_conditions_str}
+
+            UNION ALL
+
+            SELECT
+                pri.item_code AS item_code,
+                pr.supplier AS supplier,
+                pri.stock_qty AS buy_qty
+            FROM `tabPurchase Receipt` pr
+            INNER JOIN `tabPurchase Receipt Item` pri
+                ON pri.parent = pr.name
+            INNER JOIN `tabItem` i
+                ON i.name = pri.item_code
+            WHERE {pr_conditions_str}
+        ) combined
         GROUP BY
-            pii.item_code,
-            pi.supplier
+            item_code,
+            supplier
     """
-    
+
     return frappe.db.sql(query, values, as_dict=True)
 
 def allocate_by_supplier(sales_cogs_data, purchase_data, filters):
