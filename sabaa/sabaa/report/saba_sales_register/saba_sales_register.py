@@ -409,9 +409,13 @@ def get_conditions(filters, query, doctype):
         payment_doc = frappe.qb.DocType("Sales Invoice Payment")
         query = query.inner_join(payment_doc).on(parent_doc.name == payment_doc.parent)
         query = query.where(payment_doc.mode_of_payment == filters.mode_of_payment).distinct()
-    
 
-    
+    if filters.get("sales_person"):
+        sales_team = frappe.qb.DocType("Sales Team")
+        query = query.inner_join(sales_team).on(
+            (parent_doc.name == sales_team.parent) & (sales_team.parenttype == doctype)
+        )
+        query = query.where(sales_team.sales_person == filters.sales_person).distinct()
 
     return query
 

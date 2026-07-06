@@ -69,6 +69,12 @@ frappe.query_reports["Saba Sales Register"] = {
 			options: "User",
 		},
 		{
+			fieldname: "sales_person",
+			label: __("Sales Person"),
+			fieldtype: "Link",
+			options: "Sales Person",
+		},
+		{
 			fieldname: "cost_center",
 			label: __("Cost Center"),
 			fieldtype: "Link",
