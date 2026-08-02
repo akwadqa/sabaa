@@ -50,7 +50,8 @@ app_include_js = [
 doctype_js = {
     "Purchase Order": "public/js/overrides/purchase_order_moq.js",
     "Item": "public/js/overrides/purchase_order_moq.js",
-	"Stock Entry": "public/js/overrides/stock_entry_custom.js"
+	"Stock Entry": "public/js/overrides/stock_entry_custom.js",
+	"Sales Invoice": "public/js/overrides/sales_invoice.js"
 }
 
 
