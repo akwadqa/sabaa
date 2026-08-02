@@ -18,10 +18,31 @@ frappe.query_reports["Trading Item-wise Sales Register"] = {
 			reqd: 1,
 		},
 		{
+			fieldname: "customer_group",
+			label: __("Customer Group"),
+			fieldtype: "Link",
+			options: "Customer Group",
+			get_data: function(txt) {
+                return frappe.db.get_link_options("Customer Group", txt);
+            },
+			on_change: function() {
+                frappe.query_report.set_filter_value("customer", []);
+                frappe.query_report.refresh();
+            }
+		},
+		{
 			fieldname: "customer",
 			label: __("Customer"),
-			fieldtype: "Link",
+			fieldtype: "MultiSelectList",
 			options: "Customer",
+			get_data: function(txt) {
+                let customer_groups = frappe.query_report.get_filter_value("customer_group");
+                let filters = {};
+                if (customer_groups && customer_groups.length > 0) {
+                    filters["customer_group"] = ["in", customer_groups];
+                }
+                return frappe.db.get_link_options("Customer", txt, filters);
+            }
 		},
 		{
 			fieldname: "company",
@@ -80,4 +101,33 @@ frappe.query_reports["Trading Item-wise Sales Register"] = {
 		}
 		return value;
 	},
+	// //Fill inline filter with the actual filter values
+	// after_datatable_render: function (datatable) {
+	// 	const filters = {};
+
+	// 	const customer_group = frappe.query_report.get_filter_value("customer_group");
+	// 	if (customer_group) {
+	// 		const col_index = datatable.datamanager.getColumnIndexById("customer_group");
+	// 		if (col_index > -1) {
+	// 			filters[col_index] = customer_group;
+	// 		}
+	// 	}
+
+	// 	const customers = frappe.query_report.get_filter_value("customer");
+	// 	if (customers && customers.length === 1) {
+	// 		const col_index = datatable.datamanager.getColumnIndexById("customer_name");
+	// 		if (col_index > -1) {
+	// 			filters[col_index] = customers[0];
+	// 		}
+	// 	}
+
+	// 	if (Object.keys(filters).length) {
+	// 		datatable.columnmanager.toggleFilter(true);
+	// 		datatable.columnmanager.header.querySelectorAll('.dt-filter').forEach((input) => {
+	// 			const value = filters[input.dataset.colIndex];
+	// 			if (value) input.value = value;
+	// 		});
+	// 		datatable.columnmanager.applyFilter(filters);
+	// 	}
+	// },
 };

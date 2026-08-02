@@ -40,6 +40,7 @@ def _execute(filters=None, additional_table_columns=None, additional_conditions=
     total_row_map = {}
     skip_total_row = 0
     prev_group_by_value = ""
+    group_rows_buffer = []
 
     if filters.get("group_by"):
         grand_total = get_grand_total(filters, "Sales Invoice")
@@ -65,6 +66,7 @@ def _execute(filters=None, additional_table_columns=None, additional_conditions=
             "item_name": f'<a href="{frappe.utils.get_url_to_form("Item", d.item_code)}" target="_blank">{d.si_item_name if d.si_item_name else d.i_item_name}</a>',
             "invoice": d.parent,
             "posting_date": d.posting_date,
+            "customer_group": d.customer_group,
             "customer_name": f'<a href="{frappe.utils.get_url_to_form("Customer", d.customer)}" target="_blank">{customer_record.customer_name}</a>',
             **get_values_for_columns(additional_table_columns, d),
             "stock_qty": d.stock_qty,
@@ -121,10 +123,12 @@ def _execute(filters=None, additional_table_columns=None, additional_conditions=
                 subtotal_display_field,
                 grand_total,
                 tax_columns,
+                group_rows_buffer,
             )
             add_sub_total_row(row, total_row_map, d.get(group_by_field, ""), tax_columns)
-
-        data.append(row)
+            group_rows_buffer.append(row)
+        else:
+            data.append(row)
 
     if filters.get("group_by") and item_list:
         total_row = total_row_map.get(prev_group_by_value or d.get("item_name"))
@@ -132,6 +136,7 @@ def _execute(filters=None, additional_table_columns=None, additional_conditions=
             total_row["qty_by_uom"] = format_group_uom_display(total_row["_uom_totals"])
         total_row["percent_gt"] = flt(total_row["total"] / grand_total * 100)
         data.append(total_row)
+        data.extend(group_rows_buffer)
         data.append({})
         add_sub_total_row(total_row, total_row_map, "total_row", tax_columns)
         data.append(total_row_map.get("total_row"))
@@ -176,6 +181,13 @@ def get_columns(additional_table_columns, filters):
         columns.extend(
             [
                 
+                {
+                    "label": _("Customer Group"),
+                    "fieldname": "customer_group",
+                    "fieldtype": "Link",
+                    "options": "Customer Group",
+                    "width": 200,
+                },
                 {
                     "label": _("Customer Name"),
                     "fieldname": "customer_name",
@@ -230,7 +242,7 @@ def get_columns(additional_table_columns, filters):
 
 
 def apply_conditions(query, si, sii, sip, filters, additional_conditions=None):
-    for opts in ("company", "customer"):
+    for opts in ("company",):
         if filters.get(opts):
             query = query.where(si[opts] == filters[opts])
 
@@ -369,10 +381,15 @@ def get_items(filters, additional_query_columns, additional_conditions=None):
                 query = query.select(si[column.get("fieldname")])
 
     if filters.get("customer"):
-        query = query.where(si.customer == filters["customer"])
+        customers = filters["customer"]
+        if isinstance(customers, str):
+            customers = [customers]
+        
+        query = query.where(si.customer.isin(customers))
 
     if filters.get("customer_group"):
         query = query.where(si.customer_group == filters["customer_group"])
+       
 
     query = apply_conditions(query, si, sii, sip, filters, additional_conditions)
 
@@ -590,6 +607,7 @@ def add_total_row(
     subtotal_display_field,
     grand_total,
     tax_columns,
+    group_rows_buffer,
 ):
     if prev_group_by_value != item.get(group_by_field, ""):
         if prev_group_by_value:
@@ -597,8 +615,10 @@ def add_total_row(
             if total_row.get("_uom_totals"):
                 total_row["qty_by_uom"] = format_group_uom_display(total_row["_uom_totals"])
             data.append(total_row)
+            data.extend(group_rows_buffer)
             data.append({})
             add_sub_total_row(total_row, total_row_map, "total_row", tax_columns)
+            group_rows_buffer.clear()
 
         prev_group_by_value = item.get(group_by_field, "")
 
