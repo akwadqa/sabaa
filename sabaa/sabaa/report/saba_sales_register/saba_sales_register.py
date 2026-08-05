@@ -92,6 +92,7 @@ def _execute(filters, additional_table_columns=None):
             "remarks": inv.remarks,
             "sales_order": ", ".join(sales_order),
             "delivery_note": ", ".join(delivery_note),
+            "purchase_order": inv.po_no,
             "cost_center": ", ".join(cost_center),
             "warehouse": ", ".join(warehouse),
         }
@@ -191,7 +192,7 @@ def get_columns(invoice_list, additional_table_columns, include_payments=False):
                 "fieldtype": "Link",
                 "options": "Customer Group",
                 "width": 120,
-            },		           
+            },	           
             {
                 "label": _("Sales Order"),
                 "fieldname": "sales_order",
@@ -206,7 +207,13 @@ def get_columns(invoice_list, additional_table_columns, include_payments=False):
                 "options": "Delivery Note",
                 "width": 100,
             },
-            
+            {
+                "label": _("Customer PO"),
+                "fieldname": "purchase_order",
+                "fieldtype": "Link",
+                "options": "Purchase Order",
+                "width": 100,
+            },	
             {
                 "label": _("Warehouse"),
                 "fieldname": "warehouse",
@@ -363,6 +370,7 @@ def get_invoices(filters, additional_query_columns):
             si.is_internal_customer,
             si.represents_company,
             si.company,
+            si.po_no
         )
         .where(si.docstatus == 1)
     )
