@@ -2,7 +2,6 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-EXCISE_ACCOUNT_NAME = "Excise Tax Recoverable"
 EXCISE_TAX_DESCRIPTION = "Excise Tax Recoverable"
 
 
@@ -17,8 +16,6 @@ def calculate_item_excise(doc, method=None):
     the Excise "Actual" tax row exists before that first (and only) pass, so
     grand_total/GL reflect it without any custom totals/GL code.
     """
-    excise_account = _get_excise_account(doc.company)
-
     total_excise = 0.0
 
     for item in doc.get("items") or []:
@@ -54,40 +51,76 @@ def calculate_item_excise(doc, method=None):
     total_excise = flt(total_excise, doc.precision("net_total"))
     doc.custom_total_excise = total_excise
 
-    _upsert_excise_tax_row(doc, excise_account, total_excise)
+    _upsert_excise_tax_row(doc, total_excise)
 
 
 def _get_excise_account(company):
-    abbr = frappe.get_cached_value("Company", company, "abbr")
-    account = f"{EXCISE_ACCOUNT_NAME} - {abbr}"
+    account = frappe.get_cached_value("Company", company, "custom_excise_tax_recoverable_account")
 
-    if not frappe.db.exists("Account", account):
+    if not account:
         frappe.throw(
             _(
-                "Account {0} does not exist for Company {1}. "
-                "Please create it before submitting Excisable Sales Invoices."
+                "Please configure the <b>Excise Tax Recoverable Account</b> on Company {0} "
+                "before submitting Sales Invoices for Excisable Items."
+            ).format(frappe.bold(company)),
+            title=_("Excise Account Not Configured"),
+        )
+
+    account_details = frappe.db.get_value(
+        "Account", account, ("company", "is_group", "root_type"), as_dict=True
+    )
+
+    if not account_details:
+        frappe.throw(
+            _(
+                "The Excise Tax Recoverable Account {0} configured on Company {1} does not exist. "
+                "Please reconfigure it on the Company."
             ).format(frappe.bold(account), frappe.bold(company))
+        )
+
+    if account_details.company != company:
+        frappe.throw(
+            _(
+                "The Excise Tax Recoverable Account {0} configured on Company {1} belongs to a "
+                "different Company ({2}). Please configure an Account that belongs to {1}."
+            ).format(frappe.bold(account), frappe.bold(company), frappe.bold(account_details.company))
+        )
+
+    if account_details.is_group:
+        frappe.throw(
+            _(
+                "The Excise Tax Recoverable Account {0} configured on Company {1} is a group "
+                "Account and cannot be used for postings. Please configure a non-group Account."
+            ).format(frappe.bold(account), frappe.bold(company))
+        )
+
+    if account_details.root_type != "Asset":
+        frappe.throw(
+            _(
+                "The Excise Tax Recoverable Account {0} configured on Company {1} must be an "
+                "Asset Account (found {2})."
+            ).format(frappe.bold(account), frappe.bold(company), frappe.bold(account_details.root_type))
         )
 
     return account
 
 
-def _upsert_excise_tax_row(doc, excise_account, total_excise):
+def _upsert_excise_tax_row(doc, total_excise):
     existing_row = None
     for tax in doc.get("taxes") or []:
-        if tax.account_head == excise_account:
+        if tax.description == EXCISE_TAX_DESCRIPTION:
             existing_row = tax
             break
 
     if not total_excise:
-        # Exactly zero (e.g. no excisable items on this row set) -> no tax
-        # row at all, matching the print template's `{% if tax.tax_amount %}`
-        # guard. Negative totals (returns) are posted, not suppressed.
         if existing_row:
             doc.taxes.remove(existing_row)
         return
 
+    excise_account = _get_excise_account(doc.company)
+
     if existing_row:
+        existing_row.account_head = excise_account
         existing_row.tax_amount = total_excise
         existing_row.charge_type = "Actual"
     else:

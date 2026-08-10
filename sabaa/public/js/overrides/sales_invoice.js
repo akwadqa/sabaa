@@ -57,9 +57,8 @@
     async function get_excise_account(company) {
         if (!company) return null;
         if (!(company in excise_account_cache)) {
-            const r = await frappe.db.get_value("Company", company, "abbr");
-            const abbr = r.message?.abbr;
-            excise_account_cache[company] = abbr ? `Excise Tax Recoverable - ${abbr}` : null;
+            const r = await frappe.db.get_value("Company", company, "custom_excise_tax_recoverable_account");
+            excise_account_cache[company] = r.message?.custom_excise_tax_recoverable_account || null;
         }
         return excise_account_cache[company];
     }
@@ -97,21 +96,20 @@
         frm.doc.custom_total_excise = total_excise;
         frm.refresh_field("items");
 
-        if (excise_account) {
-            let tax_row = (frm.doc.taxes || []).find((t) => t.account_head === excise_account);
+        let tax_row = (frm.doc.taxes || []).find((t) => t.description === EXCISE_TAX_DESCRIPTION);
 
-            if (total_excise > 0) {
-                if (!tax_row) {
-                    tax_row = frm.add_child("taxes", {
-                        charge_type: "Actual",
-                        account_head: excise_account,
-                        description: EXCISE_TAX_DESCRIPTION,
-                    });
-                }
-                tax_row.tax_amount = total_excise;
-            } else if (tax_row) {
-                frm.doc.taxes = frm.doc.taxes.filter((t) => t !== tax_row);
+        if (total_excise > 0 && excise_account) {
+            if (!tax_row) {
+                tax_row = frm.add_child("taxes", {
+                    charge_type: "Actual",
+                    description: EXCISE_TAX_DESCRIPTION,
+                });
             }
+            tax_row.account_head = excise_account;
+            tax_row.tax_amount = total_excise;
+            frm.refresh_field("taxes");
+        } else if (tax_row) {
+            frm.doc.taxes = frm.doc.taxes.filter((t) => t !== tax_row);
             frm.refresh_field("taxes");
         }
 
