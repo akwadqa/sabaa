@@ -15,6 +15,8 @@ sabaa.patches.move_official_papers_tab
 sabaa.patches.move_last_air_ticket_paid_by_company_field
 sabaa.patches.add_vehicle_type_field_to_vehicle
 sabaa.patches.add_vehicle_type_field_to_employee
+sabaa.patches.add_excise_fields_to_item
+sabaa.patches.add_excise_fields_to_sales_invoice
 
 [post_model_sync]
 sabaa.patches.backfill_employee_references_from_official_papers

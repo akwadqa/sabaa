@@ -171,6 +171,9 @@ doc_events = {
         "validate": ["sabaa.override.total_qty_by_uom.calculate_total_qty_by_uom"]
     }, 
   	"Sales Invoice": {
+        "before_validate": [
+			"sabaa.override.excise.calculate_item_excise"
+		],
         "validate": [
 			"sabaa.override.sales_invoice_under_price_list.validate_under_price_list_rate",
 			"sabaa.override.total_qty_by_uom.calculate_total_qty_by_uom"
