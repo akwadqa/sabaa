@@ -16,16 +16,12 @@ EMPLOYEE_FIELDS = [
     "insured",
     "health_certificate_issue_date",
     "health_insurance_expiry",
-    "health_insurance_file",
-    "sponsorship",
-    "place_of_work",
-    "job_offer_letter",
+    "health_insurance_file"
 ]
 
 PAPER_TYPES = [
     {
         "document": "QID",
-        "check_fields": ["custom_employee_qid"],
         "field_map": {
             "reference_no": "custom_employee_qid",
             "expiry_date": "qid_expiry",
@@ -34,7 +30,6 @@ PAPER_TYPES = [
     },
     {
         "document": "Passport",
-        "check_fields": ["passport_number", "passport_file"],
         "field_map": {
             "reference_no": "passport_number",
             "issue_date": "date_of_issue",
@@ -45,7 +40,6 @@ PAPER_TYPES = [
     },
     {
         "document": "Driving License",
-        "check_fields": ["driving_license"],
         "field_map": {
             "reference_no": "driving_license",
             "issue_date": "driving_license_issue_date",
@@ -54,20 +48,10 @@ PAPER_TYPES = [
     },
     {
         "document": "Health Insurance",
-        "check_fields": ["insured"],
         "field_map": {
             "issue_date": "health_certificate_issue_date",
             "expiry_date": "health_insurance_expiry",
             "attachment": "health_insurance_file",
-        },
-    },
-    {
-        "document": "Sponsorship",
-        "check_fields": ["sponsorship", "place_of_work", "job_offer_letter"],
-        "field_map": {
-            "sponsorship": "sponsorship",
-            "place_of_work": "place_of_work",
-            "attachment": "job_offer_letter",
         },
     },
 ]
@@ -79,7 +63,12 @@ def execute():
 
         for employee in employees:
             for paper_type in PAPER_TYPES:
-                if not any(employee.get(field) for field in paper_type["check_fields"]):
+                values = {
+                    target_field: employee.get(source_field)
+                    for target_field, source_field in paper_type["field_map"].items()
+                }
+
+                if not any(values.values()):
                     continue
 
                 if frappe.db.exists(
@@ -97,8 +86,7 @@ def execute():
                 reference.document = paper_type["document"]
                 reference.is_current = 1
 
-                for target_field, source_field in paper_type["field_map"].items():
-                    value = employee.get(source_field)
+                for target_field, value in values.items():
                     if value:
                         reference.set(target_field, value)
 
