@@ -117,6 +117,10 @@ def _execute(filters, additional_table_columns=None):
         # net total
         row.update({"net_total": base_net_total or inv.base_net_total})
 
+        # excise amount (posted separately from income accounts via the
+        # Excise Tax Recoverable "Actual" tax row -- sabaa.override.excise)
+        row.update({"excise_amount": flt(inv.custom_total_excise)})
+
         # tax account
         total_tax = 0
         for tax_acc in tax_accounts:
@@ -253,9 +257,20 @@ def get_columns(invoice_list, additional_table_columns, include_payments=False):
             },
         ]
 
+    excise_column = [
+        {
+            "label": _("Excise Amount"),
+            "fieldname": "excise_amount",
+            "fieldtype": "Currency",
+            "options": "currency",
+            "width": 120,
+        }
+    ]
+
     columns = (
         columns
         + account_columns[0]
+        + excise_column
         + account_columns[2]
         + net_total_column
         + account_columns[1]
@@ -370,7 +385,8 @@ def get_invoices(filters, additional_query_columns):
             si.is_internal_customer,
             si.represents_company,
             si.company,
-            si.po_no
+            si.po_no,
+            si.custom_total_excise
         )
         .where(si.docstatus == 1)
     )
