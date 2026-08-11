@@ -67,7 +67,7 @@ def _get_excise_account(company):
         )
 
     account_details = frappe.db.get_value(
-        "Account", account, ("company", "is_group", "root_type"), as_dict=True
+        "Account", account, ("company", "is_group"), as_dict=True
     )
 
     if not account_details:
@@ -92,14 +92,6 @@ def _get_excise_account(company):
                 "The Excise Tax Recoverable Account {0} configured on Company {1} is a group "
                 "Account and cannot be used for postings. Please configure a non-group Account."
             ).format(frappe.bold(account), frappe.bold(company))
-        )
-
-    if account_details.root_type != "Asset":
-        frappe.throw(
-            _(
-                "The Excise Tax Recoverable Account {0} configured on Company {1} must be an "
-                "Asset Account (found {2})."
-            ).format(frappe.bold(account), frappe.bold(company), frappe.bold(account_details.root_type))
         )
 
     return account
