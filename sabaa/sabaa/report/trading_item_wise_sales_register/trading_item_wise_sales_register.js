@@ -88,6 +88,12 @@ frappe.query_reports["Trading Item-wise Sales Register"] = {
 			options: "Item Group",
 		},
 		{
+			fieldname: "salesperson",
+			label: __("Sales Person"),
+			fieldtype: "Link",
+			options: "Sales Person",
+		},
+		{
 			label: __("Group By"),
 			fieldname: "group_by",
 			fieldtype: "Select",

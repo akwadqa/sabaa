@@ -35,6 +35,7 @@ def _execute(filters=None, additional_table_columns=None, additional_conditions=
 
     mode_of_payments = get_mode_of_payments(set(d.parent for d in item_list))
     so_dn_map = get_delivery_notes_against_sales_order(item_list)
+    sales_person_map = get_sales_persons_map(item_list, filters)
 
     data = []
     total_row_map = {}
@@ -65,6 +66,7 @@ def _execute(filters=None, additional_table_columns=None, additional_conditions=
             "item_code": d.item_code,
             "item_name": f'<a href="{frappe.utils.get_url_to_form("Item", d.item_code)}" target="_blank">{d.si_item_name if d.si_item_name else d.i_item_name}</a>',
             "invoice": d.parent,
+            "sales_person": ", ".join(sales_person_map.get(d.parent, [])),
             "posting_date": d.posting_date,
             "customer_group": d.customer_group,
             "customer_name": f'<a href="{frappe.utils.get_url_to_form("Customer", d.customer)}" target="_blank">{customer_record.customer_name}</a>',
@@ -173,6 +175,12 @@ def get_columns(additional_table_columns, filters):
                 "options": "Sales Invoice",
                 "width": 150,
             },
+            {
+                "label": _("Sales Person"),
+                "fieldname": "sales_person",
+                "fieldtype": "Data",
+                "width": 150,
+            },
             {"label": _("Posting Date"), "fieldname": "posting_date", "fieldtype": "Date", "width": 120},
         ]
     )	
@@ -241,7 +249,7 @@ def get_columns(additional_table_columns, filters):
     return columns
 
 
-def apply_conditions(query, si, sii, sip, filters, additional_conditions=None):
+def apply_conditions(query, si, sii, sip, sp, filters, additional_conditions=None):
     for opts in ("company",):
         if filters.get(opts):
             query = query.where(si[opts] == filters[opts])
@@ -292,6 +300,15 @@ def apply_conditions(query, si, sii, sip, filters, additional_conditions=None):
             | (si.unrealized_profit_loss_account == filters.get("income_account"))
         )
 
+    if filters.get("salesperson"):
+        subquery = (
+            frappe.qb.from_(sp)
+            .select(sp.parent)
+            .where(sp.parenttype == "Sales Invoice")
+            .where(sp.sales_person == filters.get("salesperson"))
+        )
+        query = query.where(si.name.isin(subquery))
+
     for key, value in (additional_conditions or {}).items():
         query = query.where(si[key] == value)
 
@@ -323,6 +340,7 @@ def get_items(filters, additional_query_columns, additional_conditions=None):
     sii = frappe.qb.DocType("Sales Invoice Item")
     sip = frappe.qb.DocType("Sales Invoice Payment")
     item = frappe.qb.DocType("Item")
+    sp = frappe.qb.DocType("Sales Team")
 
     query = (
         frappe.qb.from_(si)
@@ -391,7 +409,7 @@ def get_items(filters, additional_query_columns, additional_conditions=None):
         query = query.where(si.customer_group == filters["customer_group"])
        
 
-    query = apply_conditions(query, si, sii, sip, filters, additional_conditions)
+    query = apply_conditions(query, si, sii, sip, sp, filters, additional_conditions)
 
     from frappe.desk.reportview import build_match_conditions
 
@@ -404,6 +422,30 @@ def get_items(filters, additional_query_columns, additional_conditions=None):
     query = apply_order_by_conditions(doctype, query, filters)
 
     return frappe.db.sql(query, params, as_dict=True)
+
+
+def get_sales_persons_map(item_list, filters):
+    invoices = list(set(d.parent for d in item_list))
+    sales_person_map = frappe._dict()
+
+    if not invoices:
+        return sales_person_map
+
+    sp = frappe.qb.DocType("Sales Team")
+    query = (
+        frappe.qb.from_(sp)
+        .select(sp.parent, sp.sales_person)
+        .where(sp.parenttype == "Sales Invoice")
+        .where(sp.parent.isin(invoices))
+    )
+
+    if filters.get("salesperson"):
+        query = query.where(sp.sales_person == filters.get("salesperson"))
+
+    for row in query.run(as_dict=True):
+        sales_person_map.setdefault(row.parent, []).append(row.sales_person)
+
+    return sales_person_map
 
 
 def get_delivery_notes_against_sales_order(item_list):
