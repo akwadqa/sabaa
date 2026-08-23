@@ -1,0 +1,54 @@
+<style>
+	.spr-title { display: inline-block; font-size: 18px; font-weight: bold; margin: 0 auto 4px; text-align: center; border: 1px solid #888; background: #eee; border-radius: 6px; padding: 8px 12px; }
+	.spr-title-wrap { text-align: center; }
+	.spr-subtitle { font-size: 11px; color: #555; margin-bottom: 12px; }
+	.spr-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+	.spr-table th, .spr-table td { border: 1px solid #888; padding: 4px 6px; text-align: left; word-break: break-word; }
+	.spr-table th { background: #eee; }
+	.spr-table td.amount, .spr-table th.amount { text-align: right; }
+	.spr-table tfoot td { font-weight: bold; border-top: 2px solid #333; }
+</style>
+
+<div class="spr-title-wrap"><div class="spr-title">Purchase Register</div></div>
+{% if subtitle %}
+<div class="spr-subtitle">{{ subtitle }}</div>
+{% endif %}
+
+<table class="spr-table">
+	<thead>
+		<tr>
+			<th>No</th>
+			<th>Posting Date</th>
+			<th>Party</th>
+			<th>Voucher No</th>
+			<th class="amount">Invoiced Amount</th>
+			<th class="amount">Paid Amount</th>
+			<th class="amount">Outstanding Amount</th>
+		</tr>
+	</thead>
+	{% var _no = 0, _totalGrand = 0, _totalPaid = 0, _totalOutstanding = 0; %}
+	<tbody>
+		{% for row in data %}
+		{% if row.voucher_no %}
+		{% _no++; _totalGrand += flt(row.grand_total); _totalPaid += flt(row.paid_amount); _totalOutstanding += flt(row.outstanding_amount); %}
+		<tr>
+			<td>{{ _no }}</td>
+			<td>{{ frappe.datetime.str_to_user(row.posting_date) }}</td>
+			<td>{{ row.supplier_name || row.supplier_id }}</td>
+			<td>{{ row.voucher_no }}</td>
+			<td class="amount">{{ frappe.format(row.grand_total, { fieldtype: "Currency" }) }}</td>
+			<td class="amount">{{ frappe.format(row.paid_amount, { fieldtype: "Currency" }) }}</td>
+			<td class="amount">{{ frappe.format(row.outstanding_amount, { fieldtype: "Currency" }) }}</td>
+		</tr>
+		{% endif %}
+		{% endfor %}
+	</tbody>
+	<tfoot>
+		<tr>
+			<td colspan="4">Total</td>
+			<td class="amount">{{ frappe.format(_totalGrand, { fieldtype: "Currency" }) }}</td>
+			<td class="amount">{{ frappe.format(_totalPaid, { fieldtype: "Currency" }) }}</td>
+			<td class="amount">{{ frappe.format(_totalOutstanding, { fieldtype: "Currency" }) }}</td>
+		</tr>
+	</tfoot>
+</table>
