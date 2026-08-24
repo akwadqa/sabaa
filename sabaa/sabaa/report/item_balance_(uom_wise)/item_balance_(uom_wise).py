@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from sabaa.utils import format_quantity_by_uoms
-from frappe.utils import get_url_to_form, escape_html
+from frappe.utils import flt, get_url_to_form, escape_html
 
 def execute(filters=None):
     columns = get_columns(filters)
@@ -108,6 +108,8 @@ def get_data(filters):
 
 def build_rows(rows, filters):
     data = []
+    average_rate = []
+    total_value = flt(0)
 
     for row in rows:
         conversions = parse_uom_map(row)
@@ -124,6 +126,7 @@ def build_rows(rows, filters):
             filters.get("uom"),
             row.stock_uom
         )
+        average_rate.append(rate)
 
         item_link = get_item_link(row.item_code, row.item_name)
 
@@ -132,6 +135,7 @@ def build_rows(rows, filters):
 
         stock_value = row.actual_qty * row.valuation_rate
         stock_value_display = frappe.utils.fmt_money(stock_value, currency=None)
+        total_value += stock_value
 
         data.append({
             "item_name": item_link,
@@ -143,6 +147,13 @@ def build_rows(rows, filters):
             "value": stock_value_display
         })
 
+    if filters.get("uom"):
+        average_rate = sum(rate for rate in average_rate)/len(average_rate)
+        data.append({
+            "item_name": "Total",
+            "rate": f"{frappe.utils.fmt_money(average_rate, currency=None)} ({selected_uom})",
+            "value": frappe.utils.fmt_money(total_value, currency=None)
+        })
     return data
 
 def parse_uom_map(row):

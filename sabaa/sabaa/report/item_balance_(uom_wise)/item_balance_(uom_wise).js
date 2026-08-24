@@ -62,5 +62,12 @@ frappe.query_reports["Item Balance (UOM-wise)"] = {
 			fieldtype: "Select",
 			options: []
 		}
-	]
+	],
+	formatter: function (value, row, column, data, default_formatter) {
+		value = default_formatter(value, row, column, data);
+		if (value === "Total") {
+			value = value.bold();
+		}
+		return value;
+	}
 };
