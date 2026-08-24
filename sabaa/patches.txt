@@ -18,6 +18,7 @@ sabaa.patches.add_vehicle_type_field_to_employee
 sabaa.patches.add_excise_fields_to_item
 sabaa.patches.add_excise_fields_to_sales_invoice
 sabaa.patches.add_excise_account_field_to_company
+sabaa.patches.add_sales_collection_accounts_field_to_company
 
 [post_model_sync]
 sabaa.patches.backfill_employee_references_from_official_papers
