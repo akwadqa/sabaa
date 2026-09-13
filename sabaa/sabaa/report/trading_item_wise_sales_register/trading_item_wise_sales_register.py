@@ -22,6 +22,18 @@ def execute(filters=None):
     return _execute(filters)
 
 
+def get_descendants_of_customer_group(customer_group):
+    """
+    Get all descendant customer groups for a given parent group
+    Returns a list including the parent group and all its descendants
+    """
+    descendants = get_descendants_of("Customer Group", customer_group, ignore_permissions=True)
+
+    all_groups = [customer_group] + descendants
+
+    return all_groups
+
+
 def _execute(filters=None, additional_table_columns=None, additional_conditions=None):
     if not filters:
         filters = {}
@@ -406,8 +418,9 @@ def get_items(filters, additional_query_columns, additional_conditions=None):
         query = query.where(si.customer.isin(customers))
 
     if filters.get("customer_group"):
-        query = query.where(si.customer_group == filters["customer_group"])
-       
+        # Get all descendant customer groups including the selected one
+        customer_groups = get_descendants_of_customer_group(filters["customer_group"])
+        query = query.where(si.customer_group.isin(customer_groups))
 
     query = apply_conditions(query, si, sii, sip, sp, filters, additional_conditions)
 
