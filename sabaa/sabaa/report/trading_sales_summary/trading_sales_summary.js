@@ -90,9 +90,19 @@ frappe.query_reports["Trading Sales Summary"] = {
 			options: "Sales Person",
 		},
 		{
-			fieldname: "zone_or_area",
-			label: __("Zone / Area"),
+			fieldname: "zone",
+			label: __("Zone"),
 			fieldtype: "Data",
+			description: __("Matches the Zone of the Area linked via the Trip, Salesperson or Customer Address"),
+		},
+		{
+			fieldname: "area",
+			label: __("Area"),
+			fieldtype: "Link",
+			options: "Area",
+			get_query: function () {
+				return { filters: { is_group: 0 } };
+			},
 		},
 	],
 	onload: function (report) {

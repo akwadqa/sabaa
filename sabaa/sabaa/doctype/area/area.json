@@ -11,7 +11,13 @@
  "engine": "InnoDB",
  "field_order": [
   "naming_series",
-  "area_name"
+  "area_name",
+  "zone",
+  "parent_area",
+  "is_group",
+  "lft",
+  "rgt",
+  "old_parent"
  ],
  "fields": [
   {
@@ -29,16 +35,75 @@
    "label": "Area Name",
    "reqd": 1,
    "translatable": 1
+  },
+  {
+   "bold": 1,
+   "depends_on": "eval:!doc.is_group",
+   "fieldname": "parent_area",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "in_list_view": 1,
+   "label": "Parent Area",
+   "options": "Area"
+  },
+  {
+   "bold": 1,
+   "default": "0",
+   "description": "Only leaf nodes are allowed in transaction",
+   "fieldname": "is_group",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Group"
+  },
+  {
+   "fieldname": "lft",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "lft",
+   "no_copy": 1,
+   "print_hide": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "rgt",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "rgt",
+   "no_copy": 1,
+   "print_hide": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "old_parent",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "ignore_user_permissions": 1,
+   "label": "old_parent",
+   "no_copy": 1,
+   "options": "Area",
+   "print_hide": 1,
+   "report_hide": 1
+  },
+  {
+   "depends_on": "eval:!doc.is_group",
+   "fieldname": "zone",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Zone",
+   "translatable": 1
   }
  ],
  "grid_page_length": 50,
  "hide_toolbar": 1,
+ "is_tree": 1,
  "links": [],
- "modified": "2025-11-19 14:44:40.785482",
+ "modified": "2026-08-23 13:26:22.467037",
  "modified_by": "Administrator",
  "module": "Sabaa",
  "name": "Area",
  "naming_rule": "By \"Naming Series\" field",
+ "nsm_parent_field": "parent_area",
  "owner": "Administrator",
  "permissions": [
   {
@@ -55,10 +120,10 @@
    "write": 1
   }
  ],
- "restrict_to_domain": "Retail",
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
- "search_fields": "area_name",
+ "search_fields": "area_name,parent_area",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

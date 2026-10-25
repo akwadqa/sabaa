@@ -4,6 +4,7 @@
 import frappe
 from frappe import _, qb
 from frappe.query_builder.custom import GROUP_CONCAT
+from frappe.query_builder.functions import Coalesce, NullIf
 from frappe.utils import getdate, nowdate
 
 
@@ -21,7 +22,7 @@ def execute(filters=None):
 	columns = get_columns(filters)
 
 	if filters.group_by == "Sales Invoice":
-		invoices = fetch_sales_invoices(filters)
+		invoices = attach_and_filter_area_info(fetch_sales_invoices(filters), filters)
 		order_map = get_linked_orders_for_invoices([row.document for row in invoices])
 		data = [
 			build_row(row, sales_invoice_id=row.document, sales_order_id=order_map.get(row.document))
@@ -29,8 +30,10 @@ def execute(filters=None):
 		]
 		report_summary = get_invoice_summary(invoices, order_map)
 	else:
-		orders = fetch_sales_orders(filters)
-		returns = fetch_sales_invoices(filters, returns_only=True)
+		orders = attach_and_filter_area_info(fetch_sales_orders(filters), filters)
+		returns = attach_and_filter_area_info(
+			fetch_sales_invoices(filters, returns_only=True), filters
+		)
 		invoice_map = get_linked_invoices_for_orders([row.document for row in orders])
 		data = [
 			build_row(row, sales_order_id=row.document, sales_invoice_id=invoice_map.get(row.document))
@@ -115,8 +118,8 @@ def get_columns(filters):
 			"width": 130,
 		},
 		{
-			"label": _("Zone / Area"),
-			"fieldname": "zone_or_area",
+			"label": _("Area"),
+			"fieldname": "area",
 			"fieldtype": "Data",
 			"width": 120,
 		},
@@ -136,7 +139,7 @@ def build_row(row, sales_order_id, sales_invoice_id):
 		"returned_amount": abs(row.amount) if is_return else 0,
 		"salesperson": row.salesperson,
 		"visit_id": row.visit_id,
-		"zone_or_area": None,
+		"area": row.get("area"),
 	}
 
 
@@ -182,6 +185,97 @@ def get_invoice_summary(invoices, order_map):
 		},
 		{"label": _("Returns"), "value": returns_count, "datatype": "Int", "indicator": "red"},
 	]
+
+
+def get_trip_for_visits(visit_ids):
+	if not visit_ids:
+		return {}
+	rows = frappe.get_all("Visit", filters={"name": ["in", list(visit_ids)]}, fields=["name", "trip"])
+	return {row.name: row.trip for row in rows}
+
+
+def get_area_for_trips(trip_ids):
+	trip_ids = [name for name in trip_ids if name]
+	if not trip_ids:
+		return {}
+	rows = frappe.get_all("Trip", filters={"name": ["in", trip_ids]}, fields=["name", "custom_assigned_area"])
+	return {row.name: row.custom_assigned_area for row in rows}
+
+
+def get_area_for_sales_persons(sales_person_names):
+	sales_person_names = [name for name in sales_person_names if name]
+	if not sales_person_names:
+		return {}
+	rows = frappe.get_all(
+		"Sales Person", filters={"name": ["in", sales_person_names]}, fields=["name", "custom_assigned_area"]
+	)
+	return {row.name: row.custom_assigned_area for row in rows}
+
+
+def get_area_for_addresses(address_names):
+	address_names = [name for name in address_names if name]
+	if not address_names:
+		return {}
+	rows = frappe.get_all("Address", filters={"name": ["in", address_names]}, fields=["name", "custom_area"])
+	return {row.name: row.custom_area for row in rows}
+
+
+def get_details_for_areas(area_names):
+	area_names = [name for name in area_names if name]
+	if not area_names:
+		return {}
+	rows = frappe.get_all(
+		"Area", filters={"name": ["in", area_names]}, fields=["name", "area_name", "zone"]
+	)
+	return {row.name: row for row in rows}
+
+
+def attach_and_filter_area_info(rows, filters):
+	visit_ids = {row.get("visit_id") for row in rows if row.get("visit_id")}
+	trip_by_visit = get_trip_for_visits(visit_ids)
+	area_by_trip = get_area_for_trips(trip_by_visit.values())
+
+	sales_person_names = set()
+	for row in rows:
+		if row.get("salesperson"):
+			sales_person_names.update(name for name in row["salesperson"].split(",") if name)
+	area_by_sales_person = get_area_for_sales_persons(sales_person_names)
+	area_by_address = get_area_for_addresses({row.get("customer_address") for row in rows})
+
+	area_names = (
+		set(area_by_trip.values()) | set(area_by_sales_person.values()) | set(area_by_address.values())
+	)
+	area_details = get_details_for_areas(area_names)
+
+	area_filter = filters.get("area")
+	zone_filter = filters.get("zone")
+
+	filtered_rows = []
+	for row in rows:
+		trip_area = area_by_trip.get(trip_by_visit.get(row.get("visit_id")))
+		sales_person_areas = [
+			area_by_sales_person[name]
+			for name in (row.get("salesperson") or "").split(",")
+			if area_by_sales_person.get(name)
+		]
+		customer_area = area_by_address.get(row.get("customer_address"))
+		candidate_areas = [
+			area for area in [trip_area, *sales_person_areas, customer_area] if area
+		]
+		candidate_zones = {
+			area_details[area].zone for area in candidate_areas if area_details.get(area)
+		}
+
+		if area_filter and area_filter not in candidate_areas:
+			continue
+		if zone_filter and zone_filter not in candidate_zones:
+			continue
+
+		resolved_area = candidate_areas[0] if candidate_areas else None
+		row["area"] = area_details[resolved_area].area_name if area_details.get(resolved_area) else None
+		filtered_rows.append(row)
+
+	return filtered_rows
 
 
 def get_linked_invoices_for_orders(order_names):
@@ -241,6 +335,9 @@ def fetch_sales_invoices(filters, returns_only=False):
 			si.grand_total.as_("amount"),
 			si.is_return,
 			si.custom_visit.as_("visit_id"),
+			Coalesce(NullIf(si.customer_address, ""), customer.customer_primary_address).as_(
+				"customer_address"
+			),
 			customer.customer_name,
 			customer.customer_group,
 			GROUP_CONCAT(team.sales_person).distinct().as_("salesperson"),
@@ -286,6 +383,9 @@ def fetch_sales_orders(filters):
 			so.transaction_date.as_("posting_date"),
 			so.grand_total.as_("amount"),
 			so.custom_visit.as_("visit_id"),
+			Coalesce(NullIf(so.customer_address, ""), customer.customer_primary_address).as_(
+				"customer_address"
+			),
 			customer.customer_name,
 			customer.customer_group,
 			GROUP_CONCAT(team.sales_person).distinct().as_("salesperson"),
