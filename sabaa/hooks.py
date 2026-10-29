@@ -222,7 +222,8 @@ doc_events = {
 # }
 
 override_whitelisted_methods = {
-    "erpnext.stock.doctype.delivery_note.delivery_note.make_sales_invoice": "sabaa.override.delivery_note_override.make_sales_invoice"
+    "erpnext.stock.doctype.delivery_note.delivery_note.make_sales_invoice": "sabaa.override.delivery_note_override.make_sales_invoice",
+    "frappe.utils.print_format.report_to_pdf": "sabaa.override.report_pdf.report_to_pdf",
 }
 
 
