@@ -117,7 +117,7 @@ frappe.ui.get_print_settings = function (
     );
 };
 
-// Above this many rows the server needs from about a minute to render the PDF.
+// Above this many rows the server renders the PDF in the background (DEFAULT_BACKGROUND_ROW_THRESHOLD).
 const LARGE_REPORT_ROW_COUNT = 1000;
 
 // Same as core frappe.render_pdf, but it shows progress and errors, and large
@@ -176,7 +176,9 @@ frappe.render_pdf = function (html, opts = {}) {
                     },
                     10
                 );
-                poll_report_pdf_status(response.message.token, Date.now());
+                // Twice the job timeout, so a job that waits behind another one is still followed.
+                const deadline = Date.now() + 2 * response.message.timeout * 1000;
+                poll_report_pdf_status(response.message.token, deadline);
             }
             return;
         }
@@ -208,13 +210,12 @@ function show_pdf_error(status) {
 }
 
 const PDF_STATUS_POLL_INTERVAL = 5000;
-// Matches the server job timeout; a worker that dies without a status stops the polling here.
-const PDF_STATUS_POLL_LIMIT = 30 * 60 * 1000;
 
 // Socket.io is not available on this bench, so the queued PDF is polled. Each poll
-// reads one small Redis key on the server.
-function poll_report_pdf_status(token, started_at) {
-    if (Date.now() - started_at > PDF_STATUS_POLL_LIMIT) {
+// reads one small Redis key on the server. The deadline stops the polling when a
+// worker dies without setting a status.
+function poll_report_pdf_status(token, deadline) {
+    if (Date.now() > deadline) {
         return;
     }
 
@@ -225,7 +226,7 @@ function poll_report_pdf_status(token, started_at) {
             args: { token },
             callback: ({ message }) => {
                 if (message.status === "Queued") {
-                    poll_report_pdf_status(token, started_at);
+                    poll_report_pdf_status(token, deadline);
                 } else if (message.status === "Ready") {
                     show_report_pdf_ready(message.file_url);
                 } else if (message.status === "Failed") {
