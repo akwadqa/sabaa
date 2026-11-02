@@ -3,10 +3,11 @@
 
 import frappe
 from frappe import _, scrub
-from frappe.query_builder import DocType
+from frappe.query_builder import Criterion, DocType
 from frappe.query_builder.functions import IfNull
 from frappe.utils import add_days, add_to_date, flt, getdate
 
+from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import get_dimension_with_children
 from erpnext.accounts.utils import get_fiscal_year
 from sabaa.utils import format_quantity_by_uoms, get_uom_conversion_map
 
@@ -37,6 +38,8 @@ class Analytics:
             "Nov",
             "Dec",
         ]
+        self.customer_groups = get_dimension_with_children("Customer Group", self.filters.customer_group or [])
+        self.sales_persons = get_dimension_with_children("Sales Person", self.filters.sales_person or [])
         self.get_period_date_ranges()
 
     def update_company_list_for_parent_company(self):
@@ -66,7 +69,13 @@ class Analytics:
         # Skipping total row for tree-view reports
         skip_total_row = 0
 
-        if self.filters.tree_type in ["Supplier Group", "Item Group", "Customer Group", "Territory"]:
+        if self.filters.tree_type in [
+            "Supplier Group",
+            "Item Group",
+            "Customer Group",
+            "Territory",
+            "Sales Person",
+        ]:
             skip_total_row = 1
 
         return self.columns, self.data, None, self.chart, None, skip_total_row
@@ -156,6 +165,10 @@ class Analytics:
             self.get_sales_transactions_based_on_item_group()
             self.get_rows_by_group()
 
+        elif self.filters.tree_type == "Sales Person":
+            self.get_sales_transactions_based_on_sales_person()
+            self.get_rows_by_group()
+
         elif self.filters.tree_type == "Order Type":
             if self.filters.doc_type != "Sales Order":
                 self.data = []
@@ -183,10 +196,15 @@ class Analytics:
                 doctype[value_field].as_("value_field"),
             )
             .where(
-                (doctype.docstatus == 1)
-                & (doctype.company.isin(self.filters.company))
-                & (doctype[self.date_field].between(self.filters.from_date, self.filters.to_date))
-                & (IfNull(doctype.order_type, "") != "")
+                Criterion.all(
+                    [
+                        doctype.docstatus == 1,
+                        doctype.company.isin(self.filters.company),
+                        doctype[self.date_field].between(self.filters.from_date, self.filters.to_date),
+                        IfNull(doctype.order_type, "") != "",
+                        *self.get_document_conditions(doctype),
+                    ]
+                )
             )
             .orderby(doctype.order_type)
         ).run(as_dict=True)
@@ -194,30 +212,19 @@ class Analytics:
         self.get_teams()
 
     def get_sales_transactions_based_on_customers_or_suppliers(self):
-        if self.filters["value_quantity"] == "Value":
-            value_field = "base_net_total as value_field"
-        else:
-            value_field = "total_qty as value_field"
+        party = "customer" if self.filters.tree_type == "Customer" else "supplier"
+        doctype = DocType(self.filters.doc_type)
 
-        if self.filters.tree_type == "Customer":
-            entity = "customer as entity"
-            entity_name = "customer_name as entity_name"
-        else:
-            entity = "supplier as entity"
-            entity_name = "supplier_name as entity_name"
-
-        filters = {
-            "docstatus": 1,
-            "company": ["in", self.filters.company],
-            self.date_field: ("between", [self.filters.from_date, self.filters.to_date]),
-        }
-
-        if self.filters.doc_type in ["Sales Invoice", "Purchase Invoice", "Payment Entry"]:
-            filters.update({"is_opening": "No"})
-
-        self.entries = frappe.get_all(
-            self.filters.doc_type, fields=[entity, entity_name, value_field, self.date_field], filters=filters
-        )
+        self.entries = (
+            frappe.qb.from_(doctype)
+            .select(
+                doctype[party].as_("entity"),
+                doctype[f"{party}_name"].as_("entity_name"),
+                doctype[self.get_document_value_field()].as_("value_field"),
+                doctype[self.date_field],
+            )
+            .where(self.get_document_filters(doctype))
+        ).run(as_dict=True)
 
         self.entity_names = {}
         for d in self.entries:
@@ -246,9 +253,14 @@ class Analytics:
                 doctype[self.date_field],
             )
             .where(
-                (doctype_item.docstatus == 1)
-                & (doctype.company.isin(self.filters.company))
-                & (doctype[self.date_field].between(self.filters.from_date, self.filters.to_date))
+                Criterion.all(
+                    [
+                        doctype_item.docstatus == 1,
+                        doctype.company.isin(self.filters.company),
+                        doctype[self.date_field].between(self.filters.from_date, self.filters.to_date),
+                        *self.get_document_conditions(doctype),
+                    ]
+                )
             )
         )        
 
@@ -268,33 +280,25 @@ class Analytics:
             self.entity_names.setdefault(d.entity, d.entity_name)
 
     def get_sales_transactions_based_on_customer_or_territory_group(self):
-        if self.filters["value_quantity"] == "Value":
-            value_field = "base_net_total as value_field"
-        else:
-            value_field = "total_qty as value_field"
-
         if self.filters.tree_type == "Customer Group":
-            entity_field = "customer_group as entity"
+            entity_field = "customer_group"
         elif self.filters.tree_type == "Supplier Group":
-            entity_field = "supplier as entity"
+            entity_field = "supplier"
             self.get_supplier_parent_child_map()
         else:
-            entity_field = "territory as entity"
+            entity_field = "territory"
 
-        filters = {
-            "docstatus": 1,
-            "company": ["in", self.filters.company],
-            self.date_field: ("between", [self.filters.from_date, self.filters.to_date]),
-        }
+        doctype = DocType(self.filters.doc_type)
 
-        if self.filters.doc_type in ["Sales Invoice", "Purchase Invoice", "Payment Entry"]:
-            filters.update({"is_opening": "No"})
-
-        self.entries = frappe.get_all(
-            self.filters.doc_type,
-            fields=[entity_field, value_field, self.date_field],
-            filters=filters,
-        )
+        self.entries = (
+            frappe.qb.from_(doctype)
+            .select(
+                doctype[entity_field].as_("entity"),
+                doctype[self.get_document_value_field()].as_("value_field"),
+                doctype[self.date_field],
+            )
+            .where(self.get_document_filters(doctype))
+        ).run(as_dict=True)
         self.get_groups()
 
     def get_sales_transactions_based_on_item_group(self):
@@ -316,35 +320,96 @@ class Analytics:
                 doctype[self.date_field],
             )
             .where(
-                (doctype_item.docstatus == 1)
-                & (doctype.company.isin(self.filters.company))
-                & (doctype[self.date_field].between(self.filters.from_date, self.filters.to_date))
+                Criterion.all(
+                    [
+                        doctype_item.docstatus == 1,
+                        doctype.company.isin(self.filters.company),
+                        doctype[self.date_field].between(self.filters.from_date, self.filters.to_date),
+                        *self.get_document_conditions(doctype),
+                    ]
+                )
             )
         ).run(as_dict=True)
 
         self.get_groups()
 
+    def get_sales_transactions_based_on_sales_person(self):
+        doctype = DocType(self.filters.doc_type)
+        sales_team = DocType("Sales Team")
+
+        query = (
+            frappe.qb.from_(doctype)
+            .join(sales_team)
+            .on((sales_team.parent == doctype.name) & (sales_team.parenttype == self.filters.doc_type))
+            .select(
+                sales_team.sales_person.as_("entity"),
+                (doctype[self.get_document_value_field()] * sales_team.allocated_percentage / 100).as_(
+                    "value_field"
+                ),
+                doctype[self.date_field],
+            )
+            .where(self.get_document_filters(doctype, include_sales_person=False))
+        )
+
+        # Filter the team rows directly so only the selected sales persons' shares are counted
+        if self.sales_persons:
+            query = query.where(sales_team.sales_person.isin(self.sales_persons))
+
+        self.entries = query.run(as_dict=True)
+        self.get_groups()
+
     def get_sales_transactions_based_on_project(self):
-        if self.filters["value_quantity"] == "Value":
-            value_field = "base_net_total as value_field"
-        else:
-            value_field = "total_qty as value_field"
+        doctype = DocType(self.filters.doc_type)
 
-        entity = "project as entity"
+        self.entries = (
+            frappe.qb.from_(doctype)
+            .select(
+                doctype.project.as_("entity"),
+                doctype[self.get_document_value_field()].as_("value_field"),
+                doctype[self.date_field],
+            )
+            .where(self.get_document_filters(doctype) & (doctype.project != ""))
+        ).run(as_dict=True)
 
-        filters = {
-            "docstatus": 1,
-            "company": ["in", self.filters.company],
-            "project": ["!=", ""],
-            self.date_field: ("between", [self.filters.from_date, self.filters.to_date]),
-        }
+    def get_document_value_field(self):
+        return "base_net_total" if self.filters.value_quantity == "Value" else "total_qty"
+
+    def get_document_filters(self, doctype, include_sales_person=True):
+        """Filters for document-level queries; unlike item-level queries, these also exclude opening entries."""
+        conditions = [
+            doctype.docstatus == 1,
+            doctype.company.isin(self.filters.company),
+            doctype[self.date_field].between(self.filters.from_date, self.filters.to_date),
+            *self.get_document_conditions(doctype, include_sales_person),
+        ]
 
         if self.filters.doc_type in ["Sales Invoice", "Purchase Invoice", "Payment Entry"]:
-            filters.update({"is_opening": "No"})
+            conditions.append(doctype.is_opening == "No")
 
-        self.entries = frappe.get_all(
-            self.filters.doc_type, fields=[entity, value_field, self.date_field], filters=filters
-        )
+        return Criterion.all(conditions)
+
+    def get_document_conditions(self, doctype, include_sales_person=True) -> list:
+        """Customer Group and Sales Person filter conditions on the parent document."""
+        conditions = []
+
+        if self.customer_groups:
+            conditions.append(doctype.customer_group.isin(self.customer_groups))
+
+        if include_sales_person and self.sales_persons:
+            # A subquery, not a join, so a document with several matching sales persons is counted once
+            sales_team = DocType("Sales Team")
+            conditions.append(
+                doctype.name.isin(
+                    frappe.qb.from_(sales_team)
+                    .select(sales_team.parent)
+                    .where(
+                        (sales_team.parenttype == self.filters.doc_type)
+                        & sales_team.sales_person.isin(self.sales_persons)
+                    )
+                )
+            )
+
+        return conditions
 
     def get_rows(self):
         self.data = []
@@ -416,7 +481,17 @@ class Analytics:
             row["total"] = total
             out = [row, *out]
 
+        if self.is_tree_filtered:
+            out = [row for row in out if flt(row["total"])]
+
         self.data = out
+
+    @property
+    def is_tree_filtered(self):
+        """True when the tree type's own filter is set, so unselected (all-zero) nodes are noise."""
+        return (self.filters.tree_type == "Sales Person" and bool(self.sales_persons)) or (
+            self.filters.tree_type == "Customer Group" and bool(self.customer_groups)
+        )
 
     def get_periodic_data(self):
         self.entity_periodic_data = frappe._dict()
@@ -484,6 +559,8 @@ class Analytics:
             parent = "parent_item_group"
         if self.filters.tree_type == "Supplier Group":
             parent = "parent_supplier_group"
+        if self.filters.tree_type == "Sales Person":
+            parent = "parent_sales_person"
 
         self.depth_map = frappe._dict()
 
