@@ -15,6 +15,7 @@ frappe.query_reports["Trading Sales Analytics"] = {
 				"Territory",
 				"Order Type",
 				"Project",
+				"Sales Person",
 			],
 			default: "Customer",
 			reqd: 1,
@@ -59,6 +60,26 @@ frappe.query_reports["Trading Sales Analytics"] = {
 			options: "Company",
 			default: frappe.defaults.get_user_default("Company"),
 			reqd: 1,
+		},
+		{
+			fieldname: "customer_group",
+			label: __("Customer Group"),
+			fieldtype: "MultiSelectList",
+			options: "Customer Group",
+			description: __("Includes sub-groups of the selected groups"),
+			get_data: function (txt) {
+				return frappe.db.get_link_options("Customer Group", txt);
+			},
+		},
+		{
+			fieldname: "sales_person",
+			label: __("Sales Person"),
+			fieldtype: "MultiSelectList",
+			options: "Sales Person",
+			description: __("Includes sales persons under the selected groups"),
+			get_data: function (txt) {
+				return frappe.db.get_link_options("Sales Person", txt);
+			},
 		},
 		{
 			fieldname: "range",
