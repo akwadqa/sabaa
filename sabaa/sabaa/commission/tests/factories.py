@@ -121,8 +121,12 @@ def make_sales_invoice(
 	pos_account: str | None = None,
 	pos_paid: float | None = None,
 	opening_account: str | None = None,
+	taxes: list[tuple[str, float]] = (),
+	extra: dict | None = None,
 ) -> str:
 	"""Submit an invoice; `items` is (item_code, net amount) with qty 1 (-1 on returns).
+
+	`taxes` adds Actual charge rows (account, amount); `extra` sets other invoice fields (driver, is_tender).
 
 	With `pos_account` it is a POS invoice paid in cash to that account, in full unless `pos_paid` is given.
 	With `opening_account` (a balance-sheet account) it is an opening invoice booked to that account.
@@ -146,6 +150,12 @@ def make_sales_invoice(
 	)
 	if sales_person:
 		invoice.append("sales_team", {"sales_person": sales_person, "allocated_percentage": 100})
+	invoice.update(extra or {})
+	for account, amount in taxes:
+		invoice.append(
+			"taxes",
+			{"charge_type": "Actual", "account_head": account, "description": account, "tax_amount": amount},
+		)
 	if pos_account:
 		paid = pos_paid if pos_paid is not None else sign * sum(amount for _item, amount in items)
 		_add_pos_payment(invoice, pos_account, paid)
@@ -235,3 +245,46 @@ def make_journal_entry(
 		.submit()
 		.name
 	)
+
+
+def make_driver(full_name: str, employee: str | None = None) -> str:
+	return frappe.get_doc({"doctype": "Driver", "full_name": full_name, "employee": employee}).insert().name
+
+
+def make_carton_item(item_code: str, pieces_per_carton: float, carton_uom: str = "Ctn") -> str:
+	"""A non-stock item sold in pieces (stock UOM Nos) with a carton conversion."""
+	return (
+		frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": item_code,
+				"item_group": "Canned Food",
+				"stock_uom": "Nos",
+				"is_stock_item": 0,
+				"uoms": [
+					{"uom": "Nos", "conversion_factor": 1},
+					{"uom": carton_uom, "conversion_factor": pieces_per_carton},
+				],
+			}
+		)
+		.insert()
+		.name
+	)
+
+
+def make_qty_invoice(customer: str, sales_person: str, posting_date: str, item_code: str, qty: float, rate: float) -> str:
+	"""Submit an invoice of `qty` stock units of one item."""
+	invoice = frappe.get_doc(
+		{
+			"doctype": "Sales Invoice",
+			"company": COMPANY,
+			"customer": customer,
+			"posting_date": posting_date,
+			"set_posting_time": 1,
+			"due_date": posting_date,
+			"is_return": int(qty < 0),
+			"items": [{"item_code": item_code, "qty": qty, "rate": rate}],
+		}
+	)
+	invoice.append("sales_team", {"sales_person": sales_person, "allocated_percentage": 100})
+	return invoice.insert().submit().name

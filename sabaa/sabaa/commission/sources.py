@@ -333,3 +333,138 @@ def _to_rows(totals: dict[BucketKey, float]) -> list[BasisRow]:
 def _sort_key(bucket: BucketKey) -> tuple[date, str, str]:
 	month, key, flag = bucket
 	return (month, key or "", flag or "")
+
+
+@dataclass(frozen=True)
+class DeliveryRow:
+	month: date
+	driver: str | None
+	employee: str | None
+	fee_amount: float
+	free_order_count: int
+
+
+def get_delivery_fees(
+	company: str, customer_groups: list[str], from_date: date | str, to_date: date | str, account: str
+) -> list[DeliveryRow]:
+	"""Delivery charges per month and invoice driver; an invoice with no charge is a free order.
+
+	Charges are read from tax rows and item rows booked to `account` (the site uses tax rows).
+	"""
+	if not customer_groups:
+		return []
+
+	driver = DocType("Driver")
+	invoices = (
+		_invoice_query(company, customer_groups, from_date, to_date)
+		.left_join(driver)
+		.on(driver.name == SalesInvoice.driver)
+		.where(SalesInvoice.is_return == 0)
+		.select(SalesInvoice.name, SalesInvoice.posting_date, SalesInvoice.driver, driver.employee)
+		.distinct()
+		.run(as_dict=True)
+	)
+	fees = _get_delivery_charges([invoice.name for invoice in invoices], account)
+
+	totals: dict[tuple, list[float]] = defaultdict(lambda: [0.0, 0])
+	for invoice in invoices:
+		bucket = totals[(month_start(invoice.posting_date), invoice.driver, invoice.employee)]
+		fee = fees.get(invoice.name, 0)
+		bucket[0] += fee
+		bucket[1] += 0 if fee else 1
+	return [
+		DeliveryRow(month, driver_name, employee, flt(fee), count)
+		for (month, driver_name, employee), (fee, count) in sorted(
+			totals.items(), key=lambda item: (item[0][0], item[0][1] or "")
+		)
+	]
+
+
+def _get_delivery_charges(invoice_names: list[str], account: str) -> dict[str, float]:
+	if not invoice_names:
+		return {}
+
+	fees: dict[str, float] = defaultdict(float)
+	tax, item = DocType("Sales Taxes and Charges"), DocType("Sales Invoice Item")
+	sources = (
+		(tax, tax.base_tax_amount, tax.account_head, "Sales Invoice"),
+		(item, item.base_net_amount, item.income_account, None),
+	)
+	for table, amount, account_field, parenttype in sources:
+		query = frappe.qb.from_(table).where(table.parent.isin(invoice_names) & (account_field == account))
+		if parenttype:
+			query = query.where(table.parenttype == parenttype)
+		for row in query.select(table.parent, Sum(amount).as_("amount")).groupby(table.parent).run(as_dict=True):
+			fees[row.parent] += flt(row.amount)
+	return fees
+
+
+def get_units(
+	company: str,
+	customer_groups: list[str],
+	from_date: date | str,
+	to_date: date | str,
+	unit_rates: list[frappe._dict],
+	carton_uom: str,
+) -> list[BasisRow]:
+	"""Per-unit commission per posting month and sales person: cartons sold × amount per unit.
+
+	Returns count negative (business default U1). A rate's own UOM wins over `carton_uom`.
+	"""
+	rates = {rate.item: rate for rate in unit_rates}
+	if not customer_groups or not rates:
+		return []
+
+	invoice_item = DocType("Sales Invoice Item")
+	rows = (
+		_invoice_query(company, customer_groups, from_date, to_date)
+		.join(invoice_item)
+		.on(invoice_item.parent == SalesInvoice.name)
+		.where(invoice_item.item_code.isin(list(rates)))
+		.select(
+			SalesInvoice.posting_date,
+			SalesTeam.sales_person,
+			invoice_item.item_code,
+			Sum(invoice_item.stock_qty * SALES_TEAM_SHARE).as_("stock_qty"),
+		)
+		.groupby(SalesInvoice.posting_date, SalesTeam.sales_person, invoice_item.item_code)
+		.run(as_dict=True)
+	)
+	factors = _get_unit_factors(rates, carton_uom)
+
+	totals: dict[BucketKey, float] = defaultdict(float)
+	for row in rows:
+		units = flt(row.stock_qty) / factors[row.item_code]
+		totals[_invoice_bucket(row)] += units * flt(rates[row.item_code].amount_per_unit)
+	return _to_rows(totals)
+
+
+def _get_unit_factors(rates: dict[str, frappe._dict], carton_uom: str) -> dict[str, float]:
+	"""Stock units per counted unit for each rated item; a missing conversion fails loudly."""
+	factors = {}
+	for item_code, rate in rates.items():
+		uom = rate.get("uom") or carton_uom
+		factor = frappe.db.get_value("UOM Conversion Detail", {"parent": item_code, "uom": uom}, "conversion_factor")
+		if not factor:
+			frappe.throw(frappe._("Item {0} has no conversion for UOM {1}.").format(item_code, uom))
+		factors[item_code] = flt(factor)
+	return factors
+
+
+def get_tender_collections(company: str, from_date: date | str, to_date: date | str) -> list[BasisRow]:
+	"""Collections allocated to tender invoices, per payment month, as one pool (key None)."""
+	ledger = DocType("Payment Ledger Entry")
+	rows = (
+		frappe.qb.from_(ledger)
+		.join(SalesInvoice)
+		.on((ledger.against_voucher_type == "Sales Invoice") & (SalesInvoice.name == ledger.against_voucher_no))
+		.where(_customer_collection_condition(ledger, company, from_date, to_date))
+		.where(SalesInvoice.is_tender == 1)
+		.select(ledger.posting_date, Sum(-ledger.amount).as_("amount"))
+		.groupby(ledger.posting_date)
+		.run(as_dict=True)
+	)
+	totals: dict[BucketKey, float] = defaultdict(float)
+	for row in rows:
+		totals[(month_start(row.posting_date), None, None)] += row.amount
+	return _to_rows(totals)
