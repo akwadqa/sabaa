@@ -1,0 +1,290 @@
+{
+ "actions": [],
+ "autoname": "format:{plan}-{rule_name}",
+ "creation": "2026-11-11 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "plan",
+  "rule_name",
+  "category",
+  "column_break_identity",
+  "role_label",
+  "template",
+  "is_waiting_for_business",
+  "status_note",
+  "section_summary",
+  "summary",
+  "tab_tiers",
+  "tier_method",
+  "tiers",
+  "flat_rate_percent",
+  "unit_rates",
+  "bonus_after_count",
+  "bonus_per_unit",
+  "tab_people",
+  "team_group",
+  "member_designations",
+  "shares",
+  "tab_period",
+  "period_mode",
+  "section_advanced",
+  "basis",
+  "basis_sources",
+  "attribute_by",
+  "recipient_source",
+  "paired_rule",
+  "column_break_advanced",
+  "payout_multiplier",
+  "headcount_base",
+  "headcount_share",
+  "scale_amounts"
+ ],
+ "fields": [
+  {
+   "fieldname": "plan",
+   "fieldtype": "Link",
+   "label": "Plan",
+   "options": "Commission Plan",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "rule_name",
+   "fieldtype": "Data",
+   "label": "Rule Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "Traditional Trade\nModern Trade\nSales Management\nSmile24\nLogistics\nTenders",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_identity",
+   "fieldtype": "Column Break",
+   "label": "Column Break Identity"
+  },
+  {
+   "fieldname": "role_label",
+   "fieldtype": "Data",
+   "label": "Role"
+  },
+  {
+   "fieldname": "template",
+   "fieldtype": "Data",
+   "label": "Template",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_waiting_for_business",
+   "fieldtype": "Check",
+   "label": "Waiting for Business Input"
+  },
+  {
+   "fieldname": "status_note",
+   "fieldtype": "Small Text",
+   "label": "Status Note",
+   "depends_on": "is_waiting_for_business"
+  },
+  {
+   "fieldname": "section_summary",
+   "fieldtype": "Section Break",
+   "label": "Summary"
+  },
+  {
+   "fieldname": "summary",
+   "fieldtype": "Small Text",
+   "label": "Summary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tab_tiers",
+   "fieldtype": "Tab Break",
+   "label": "Tiers"
+  },
+  {
+   "fieldname": "tier_method",
+   "fieldtype": "Select",
+   "label": "Tier Method",
+   "options": "Tiered\nFlat Rate\nUnit Rate",
+   "default": "Tiered",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tiers",
+   "fieldtype": "Table",
+   "label": "Tiers",
+   "options": "Commission Tier",
+   "depends_on": "eval:doc.tier_method=='Tiered'"
+  },
+  {
+   "fieldname": "flat_rate_percent",
+   "fieldtype": "Percent",
+   "label": "Flat Rate Percent",
+   "depends_on": "eval:doc.tier_method=='Flat Rate'"
+  },
+  {
+   "fieldname": "unit_rates",
+   "fieldtype": "Table",
+   "label": "Unit Rates",
+   "options": "Commission Unit Rate",
+   "depends_on": "eval:doc.tier_method=='Unit Rate'"
+  },
+  {
+   "fieldname": "bonus_after_count",
+   "fieldtype": "Int",
+   "label": "Bonus After Count"
+  },
+  {
+   "fieldname": "bonus_per_unit",
+   "fieldtype": "Currency",
+   "label": "Bonus Per Unit"
+  },
+  {
+   "fieldname": "tab_people",
+   "fieldtype": "Tab Break",
+   "label": "People & Split"
+  },
+  {
+   "fieldname": "team_group",
+   "fieldtype": "Link",
+   "label": "Team Group",
+   "options": "Sales Person",
+   "depends_on": "eval:doc.recipient_source!='Each Attributed Person'",
+   "link_filters": "[[\"Sales Person\",\"is_group\",\"=\",1]]"
+  },
+  {
+   "fieldname": "member_designations",
+   "fieldtype": "Table MultiSelect",
+   "label": "Member Designations",
+   "options": "Commission Designation"
+  },
+  {
+   "fieldname": "shares",
+   "fieldtype": "Table",
+   "label": "Shares",
+   "options": "Commission Share",
+   "depends_on": "eval:doc.recipient_source=='Pool'"
+  },
+  {
+   "fieldname": "tab_period",
+   "fieldtype": "Tab Break",
+   "label": "Period"
+  },
+  {
+   "fieldname": "period_mode",
+   "fieldtype": "Select",
+   "label": "Period Mode",
+   "options": "Monthly\nQuarterly Average\nRolling 3-Month Average",
+   "default": "Monthly",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_advanced",
+   "fieldtype": "Section Break",
+   "label": "Advanced",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "basis",
+   "fieldtype": "Select",
+   "label": "Basis",
+   "options": "Collected Sales\nNet Invoiced Sales\nCompany Sales\nDelivery Fees\nUnit Count\nTender Collections\nPaired Basis",
+   "reqd": 1
+  },
+  {
+   "fieldname": "basis_sources",
+   "fieldtype": "Table",
+   "label": "Basis Sources",
+   "options": "Commission Basis Source"
+  },
+  {
+   "fieldname": "attribute_by",
+   "fieldtype": "Select",
+   "label": "Attribute By",
+   "options": "Invoice Sales Person\nInvoice Driver\nNone",
+   "default": "None"
+  },
+  {
+   "fieldname": "recipient_source",
+   "fieldtype": "Select",
+   "label": "Recipient Source",
+   "options": "Each Attributed Person\nSupervisor of Sales Person Group\nPool",
+   "default": "Each Attributed Person"
+  },
+  {
+   "fieldname": "paired_rule",
+   "fieldtype": "Link",
+   "label": "Paired Rule",
+   "options": "Commission Rule"
+  },
+  {
+   "fieldname": "column_break_advanced",
+   "fieldtype": "Column Break",
+   "label": "Column Break Advanced"
+  },
+  {
+   "fieldname": "payout_multiplier",
+   "fieldtype": "Int",
+   "label": "Payout Multiplier",
+   "default": "1"
+  },
+  {
+   "fieldname": "headcount_base",
+   "fieldtype": "Int",
+   "label": "Headcount Base",
+   "description": "0 = no scaling"
+  },
+  {
+   "fieldname": "headcount_share",
+   "fieldtype": "Data",
+   "label": "Headcount Share",
+   "description": "Name of the share whose member count scales the tiers. Empty = team members."
+  },
+  {
+   "fieldname": "scale_amounts",
+   "fieldtype": "Check",
+   "label": "Scale Amounts"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sabaa",
+ "name": "Commission Rule",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "Commission Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "report": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "rule_name"
+}
