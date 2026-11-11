@@ -16,11 +16,21 @@ from sabaa.sabaa.commission.periods import month_start
 class CommissionManualFigure(Document):
 	def validate(self) -> None:
 		self.month = month_start(self.month)
+		self.validate_plan()
 		self.validate_month_before_erpnext()
 		self.validate_is_unique()
 
+	def validate_plan(self) -> None:
+		rule_plan = frappe.db.get_value("Commission Rule", self.rule, "plan")
+		if self.plan and self.plan != rule_plan:
+			frappe.throw(_("Rule {0} belongs to plan {1}.").format(self.rule, rule_plan))
+		self.plan = rule_plan
+
 	def validate_month_before_erpnext(self) -> None:
-		start_date = getdate(frappe.db.get_single_value("Commission Settings", "erpnext_start_date"))
+		configured = frappe.db.get_single_value("Commission Settings", "erpnext_start_date")
+		start_date = getdate(configured)
+		if start_date == date.min:  # an unset Single date reads back as 0001-01-01
+			frappe.throw(_("Set the ERPNext Start Date in Commission Settings."))
 		if self.month >= start_date:
 			frappe.throw(
 				_("{0} is in ERPNext. Manual figures are only for months before {1}.").format(

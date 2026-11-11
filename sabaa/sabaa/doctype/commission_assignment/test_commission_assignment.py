@@ -5,6 +5,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import getdate
 
+from sabaa.sabaa.commission.tests.factories import make_employee, make_sales_person
 from sabaa.sabaa.doctype.commission_assignment.commission_assignment import get_assignments
 from sabaa.sabaa.doctype.commission_plan.test_commission_plan import make_plan
 
@@ -28,8 +29,8 @@ class TestCommissionAssignment(FrappeTestCase):
 				"shares": SHARES,
 			}
 		).insert()
-		self.employee = frappe.get_all("Employee", pluck="name", limit=1)[0]
-		self.sales_person = frappe.get_all("Sales Person", filters={"is_group": 0}, pluck="name", limit=1)[0]
+		self.employee = make_employee("Test Assignment Employee")
+		self.sales_person = make_sales_person("Test Assignment Salesman", self.employee)
 
 	def make_assignment(self, **overrides):
 		values = {

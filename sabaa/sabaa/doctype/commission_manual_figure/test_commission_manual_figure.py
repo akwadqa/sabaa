@@ -5,6 +5,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import getdate
 
+from sabaa.sabaa.commission.tests.factories import make_sales_person
 from sabaa.sabaa.doctype.commission_manual_figure.commission_manual_figure import get_manual_figures
 from sabaa.sabaa.doctype.commission_plan.test_commission_plan import make_plan
 
@@ -26,7 +27,7 @@ class TestCommissionManualFigure(FrappeTestCase):
 				"flat_rate_percent": 1,
 			}
 		).insert()
-		self.sales_person = frappe.get_all("Sales Person", filters={"is_group": 0}, pluck="name", limit=1)[0]
+		self.sales_person = make_sales_person("Test Figure Salesman")
 
 	def make_figure(self, month: str = "2026-03-17", **overrides):
 		values = {
@@ -75,3 +76,22 @@ class TestCommissionManualFigure(FrappeTestCase):
 
 	def test_get_manual_figures_without_months_is_empty(self):
 		self.assertEqual(get_manual_figures(self.rule.name, []), {})
+
+	def test_missing_erpnext_start_date_is_refused(self):
+		frappe.db.set_single_value("Commission Settings", "erpnext_start_date", None)
+		with self.assertRaises(frappe.ValidationError) as raised:
+			self.make_figure().insert()
+		self.assertEqual(str(raised.exception), "Set the ERPNext Start Date in Commission Settings.")
+
+	def test_plan_must_match_the_rules_plan(self):
+		other = make_plan("Test Other Plan", "2026-01-01", None, status="Draft")
+		with self.assertRaises(frappe.ValidationError) as raised:
+			self.make_figure(plan=other.name).insert()
+		self.assertEqual(
+			str(raised.exception), "Rule {0} belongs to plan {1}.".format(self.rule.name, self.plan.name)
+		)
+
+	def test_plan_is_filled_from_the_rule(self):
+		figure = self.make_figure(plan=None)
+		figure.flags.ignore_mandatory = True
+		self.assertEqual(figure.insert().plan, self.plan.name)
