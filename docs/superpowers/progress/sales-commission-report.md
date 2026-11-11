@@ -26,15 +26,30 @@ Update this file when a task starts, finishes or is blocked. Record the commit h
 - [x] Task 8: Recipients and distribution — done (90db238), 11 tests passing
 - [x] Task 9: Engine, setup check and API — done (a4bafd4), 10 tests passing
 
-## Phase 5: Report and Commission Run (`phase-5-report-and-run.md`)
+## Phase 5: Report and Commission Run (`phase-5-report-and-run.md`) — complete at 2ed98bc
 
-- [ ] Task 10: Default plan, templates and the report — status: not started
-- [ ] Task 11: Commission Run and locking — status: not started
+- [x] Task 10: Default plan, templates and the report — done (cf35d36), 7 tests passing
+- [x] Task 11: Commission Run and locking — done (2ed98bc), 5 tests passing
 
 ## Phase 6: Client setup UX (`phase-6-setup-ux.md`)
 
-- [ ] Task 12: Commission Setup page and guided forms — status: not started
+- [x] Task 12: Commission Setup page and guided forms — done (028a403), 4 tests passing; browser check pending
 
 ## Phase 7: Validation and handover (`phase-7-validation-and-handover.md`)
 
-- [ ] Task 13: Validation on real data and handover docs — status: not started
+- [x] Task 13: Validation on real data and handover docs — done; suite 125 tests passing (1 skipped)
+
+## Validation on real data (sabaa.local, 2026-11-12)
+
+Default plan created; Commission Settings: start 2026-05-01, delivery account `4203 - Delivery Charges - STG`.
+
+| Month | Run time | Lines | Result |
+|---|---|---|---|
+| May 2026 | 0.67 s | 16 | Smile24 1,794.75 QAR, Tea Milk 27.54 QAR. Quarterly rules do not pay in May. |
+| June 2026 | 1.08 s | 25 | Quarterly rules show "Missing data": April figures are not entered yet. |
+
+Setup problems found on the site (shown with Fix links): 5 Smile24 drivers without an employee, 4 cash sales persons without an employee (Prabhu, Mehtab, Morgon, Shohail), no supervisor set on the two Sales Person groups, missing April figures.
+
+Comparison with booked commission: May 2026 bookings (51302 Cash 27,673; 51306 Drivers and Labor 10,756; 51308 H.M 14,063; 51310 Management 17,662; 51320 Sales Head 26,601; 51322 Smile 24 5,262) are the January–April catch-up. A like-for-like comparison needs the March and April figures and the open answers (G4, S1, M2, L1). Bugs found in this run and fixed with regression tests: invoices without a driver, and figure requests for sales people outside the team.
+
+Not done yet: browser check of the setup screens (needs the web server and a browser; held back to save laptop memory).
