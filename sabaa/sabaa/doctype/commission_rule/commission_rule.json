@@ -5,6 +5,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "tab_summary",
+  "summary",
   "plan",
   "rule_name",
   "category",
@@ -13,8 +15,6 @@
   "template",
   "is_waiting_for_business",
   "status_note",
-  "section_summary",
-  "summary",
   "tab_tiers",
   "tier_method",
   "tiers",
@@ -41,6 +41,17 @@
   "scale_amounts"
  ],
  "fields": [
+  {
+   "fieldname": "tab_summary",
+   "fieldtype": "Tab Break",
+   "label": "Summary"
+  },
+  {
+   "fieldname": "summary",
+   "fieldtype": "Small Text",
+   "label": "Summary",
+   "read_only": 1
+  },
   {
    "fieldname": "plan",
    "fieldtype": "Link",
@@ -92,17 +103,6 @@
    "fieldtype": "Small Text",
    "label": "Status Note",
    "depends_on": "is_waiting_for_business"
-  },
-  {
-   "fieldname": "section_summary",
-   "fieldtype": "Section Break",
-   "label": "Summary"
-  },
-  {
-   "fieldname": "summary",
-   "fieldtype": "Small Text",
-   "label": "Summary",
-   "read_only": 1
   },
   {
    "fieldname": "tab_tiers",
@@ -197,7 +197,8 @@
    "fieldtype": "Select",
    "label": "Basis",
    "options": "Collected Sales\nNet Invoiced Sales\nCompany Sales\nDelivery Fees\nUnit Count\nTender Collections\nPaired Basis",
-   "reqd": 1
+   "reqd": 1,
+   "default": "Collected Sales"
   },
   {
    "fieldname": "basis_sources",
@@ -210,7 +211,7 @@
    "fieldtype": "Select",
    "label": "Attribute By",
    "options": "Invoice Sales Person\nInvoice Driver\nNone",
-   "default": "None"
+   "default": "Invoice Sales Person"
   },
   {
    "fieldname": "recipient_source",

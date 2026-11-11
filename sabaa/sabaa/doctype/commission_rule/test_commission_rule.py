@@ -68,6 +68,15 @@ class TestCommissionRule(FrappeTestCase):
 		)
 		rule.insert()
 
+	def test_pool_without_shares_needs_waiting_flag(self):
+		with self.assertRaises(frappe.ValidationError) as raised:
+			self.make_rule(recipient_source="Pool").insert()
+		self.assertEqual(
+			str(raised.exception),
+			"Add at least one share for this pool, or tick Waiting for business input.",
+		)
+		self.make_rule(recipient_source="Pool", is_waiting_for_business=1).insert()
+
 	def test_summary_is_filled(self):
 		rule = self.make_rule().insert()
 		self.assertEqual(rule.summary, "5 tiers · Rolling 3-Month Average · Collected Sales")

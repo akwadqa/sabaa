@@ -31,7 +31,11 @@ class CommissionRule(Document):
 			frappe.throw("<br>".join(problems))
 
 	def validate_shares(self) -> None:
-		if self.recipient_source != POOL or not self.shares:
+		if self.recipient_source != POOL:
+			return
+		if not self.shares:
+			if not self.is_waiting_for_business:
+				frappe.throw(_("Add at least one share for this pool, or tick Waiting for business input."))
 			return
 		total = sum(share.percent or 0 for share in self.shares)
 		if round(total, 6) != FULL_SHARE_PERCENT:
