@@ -81,3 +81,74 @@ def _relink_paired_rules(source_plan: str, target_plan: str) -> None:
 		paired_name = frappe.db.get_value("Commission Rule", rule.paired_rule, "rule_name")
 		target = frappe.db.get_value("Commission Rule", {"plan": target_plan, "rule_name": paired_name})
 		frappe.db.set_value("Commission Rule", {"plan": target_plan, "rule_name": rule.rule_name}, "paired_rule", target)
+
+
+@frappe.whitelist()
+def get_people(rule: str, month: str) -> list[dict]:
+	from sabaa.sabaa.commission import people
+
+	check_plan_permission(frappe.db.get_value("Commission Rule", rule, "plan"))
+	return people.get_people(rule, month)
+
+
+@frappe.whitelist()
+def save_people(rule: str, month: str, rows: list | str) -> None:
+	from sabaa.sabaa.commission import people
+
+	check_plan_permission(frappe.db.get_value("Commission Rule", rule, "plan"), "write")
+	people.save_people(rule, month, frappe.parse_json(rows))
+
+
+@frappe.whitelist()
+def get_missing_figure_grid(plan: str) -> dict:
+	from sabaa.sabaa.commission import figures_grid
+
+	check_plan_permission(plan)
+	return figures_grid.get_missing_figure_grid(plan)
+
+
+@frappe.whitelist()
+def save_missing_figures(plan: str, rows: list | str) -> None:
+	from sabaa.sabaa.commission import figures_grid
+
+	check_plan_permission(plan, "write")
+	figures_grid.save_missing_figures(plan, frappe.parse_json(rows))
+
+
+@frappe.whitelist()
+def create_default_plan(company: str | None = None) -> str:
+	from sabaa.sabaa.commission import default_plan
+
+	frappe.has_permission("Commission Plan", "create", throw=True)
+	company = company or frappe.db.get_single_value("Commission Settings", "company")
+	return default_plan.create_default_plan(company)
+
+
+@frappe.whitelist()
+def get_templates() -> list[dict]:
+	from sabaa.sabaa.commission import templates
+
+	return templates.get_templates()
+
+
+@frappe.whitelist()
+def apply_rule_template(rule: str, template: str) -> None:
+	"""Fill an existing rule from a template (the rule form's template picker)."""
+	from sabaa.sabaa.commission.templates import apply_template
+
+	doc = frappe.get_doc("Commission Rule", rule)
+	check_plan_permission(doc.plan, "write")
+	apply_template(doc, template)
+	doc.save()
+
+
+@frappe.whitelist()
+def create_rule_from_template(plan: str, template: str, rule_name: str | None = None) -> str:
+	"""Create a rule in `plan` filled from `template` (the plan form's New rule dialog)."""
+	from sabaa.sabaa.commission.templates import apply_template
+
+	check_plan_permission(plan, "write")
+	rule = frappe.new_doc("Commission Rule")
+	rule.plan, rule.rule_name = plan, rule_name or template
+	apply_template(rule, template)
+	return rule.insert().name

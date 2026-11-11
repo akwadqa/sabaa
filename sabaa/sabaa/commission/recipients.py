@@ -27,7 +27,10 @@ class Member:
 
 
 def get_tree_members(group: str, designations: list[str], start: date, end: date) -> list[Member]:
-	"""Enabled leaf Sales Persons under `group`; leaves without an employee are kept (Needs setup)."""
+	"""Enabled leaf Sales Persons under `group`; leaves without an employee are kept (Needs setup).
+
+	An empty `designations` list accepts every designation.
+	"""
 	root = DocType("Sales Person").as_("root")
 	rows = (
 		frappe.qb.from_(SalesPerson)
@@ -51,7 +54,7 @@ def get_tree_members(group: str, designations: list[str], start: date, end: date
 	return [
 		Member(row.employee, row.employee_name or row.sales_person, row.sales_person, row.designation, FROM_HR_TREE)
 		for row in rows
-		if not row.employee or (row.designation in designations and is_eligible(row, start, end))
+		if not row.employee or ((not designations or row.designation in designations) and is_eligible(row, start, end))
 	]
 
 
