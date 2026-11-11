@@ -5,9 +5,8 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import getdate
 
-from sabaa.sabaa.commission.tests.factories import make_sales_person
+from sabaa.sabaa.commission.tests.factories import make_plan, make_sales_person
 from sabaa.sabaa.doctype.commission_manual_figure.commission_manual_figure import get_manual_figures
-from sabaa.sabaa.doctype.commission_plan.test_commission_plan import make_plan
 
 
 class TestCommissionManualFigure(FrappeTestCase):

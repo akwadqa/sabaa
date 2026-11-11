@@ -38,3 +38,17 @@ def make_sales_person(
 		.insert()
 		.name
 	)
+
+
+def make_plan(plan_name: str, valid_from: str, valid_to: str | None, status: str = "Active"):
+	return frappe.get_doc(
+		{
+			"doctype": "Commission Plan",
+			"plan_name": plan_name,
+			"company": COMPANY,
+			"valid_from": valid_from,
+			"valid_to": valid_to,
+			"status": status,
+		}
+	).insert()
+

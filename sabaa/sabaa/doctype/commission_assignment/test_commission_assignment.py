@@ -5,9 +5,8 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import getdate
 
-from sabaa.sabaa.commission.tests.factories import make_employee, make_sales_person
+from sabaa.sabaa.commission.tests.factories import make_employee, make_plan, make_sales_person
 from sabaa.sabaa.doctype.commission_assignment.commission_assignment import get_assignments
-from sabaa.sabaa.doctype.commission_plan.test_commission_plan import make_plan
 
 SHARES = [{"share_name": "Drivers", "percent": 60}, {"share_name": "Workers", "percent": 40}]
 

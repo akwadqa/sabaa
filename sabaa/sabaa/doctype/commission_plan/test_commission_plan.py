@@ -5,22 +5,8 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import getdate
 
+from sabaa.sabaa.commission.tests.factories import COMPANY, make_plan
 from sabaa.sabaa.doctype.commission_plan.commission_plan import CommissionPlan
-
-COMPANY = "Saba Trading Group"
-
-
-def make_plan(plan_name: str, valid_from: str, valid_to: str | None, status: str = "Active"):
-	return frappe.get_doc(
-		{
-			"doctype": "Commission Plan",
-			"plan_name": plan_name,
-			"company": COMPANY,
-			"valid_from": valid_from,
-			"valid_to": valid_to,
-			"status": status,
-		}
-	).insert()
 
 
 class TestCommissionPlan(FrappeTestCase):
