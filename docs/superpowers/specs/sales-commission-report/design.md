@@ -1,7 +1,7 @@
 # Sales Commission & Incentive — Design (fresh rebuild)
 
 Date: 2026-11-11 · App: `sabaa` (module Sabaa) · Frappe/ERPNext 15
-After approval this file is copied to `sabaa/docs/superpowers/specs/2026-11-11-sales-commission-design.md`
+Location: `docs/superpowers/specs/sales-commission-report/design.md`
 on a new branch, and the next step is `superpowers:writing-plans`.
 
 ## 0. Branch and starting point
@@ -313,7 +313,7 @@ U1 Per-carton items: do returns deduct? Other items (Memories 2 QAR, Abu Walad 5
 ## 7b. After approval (first steps)
 
 1. `git stash -u` on `feat/sales-commission-report`; `git switch -c feat/sales-commission-v2 develop`.
-2. Copy this design to `docs/superpowers/specs/2026-11-11-sales-commission-design.md`; commit
+2. Save this design as `docs/superpowers/specs/sales-commission-report/design.md`; commit
    `docs(commission): add sales commission design`.
 3. Invoke `superpowers:writing-plans` to produce the implementation plan.
 
