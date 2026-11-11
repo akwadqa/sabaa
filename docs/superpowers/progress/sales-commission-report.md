@@ -5,11 +5,11 @@ Spec folder: `docs/superpowers/specs/sales-commission-report/`
 
 Update this file when a task starts, finishes or is blocked. Record the commit hash and test result.
 
-## Phase 1: Foundations (`phase-1-foundations.md`)
+## Phase 1: Foundations (`phase-1-foundations.md`) — complete at a15de5e
 
 - [x] Task 1: Clean start, package skeleton, settings, role and tender field — done (c8980a3), 2 tests passing
-- [ ] Task 2: Tier calculation (pure) — status: not started
-- [ ] Task 3: Periods and averages (pure) — status: not started
+- [x] Task 2: Tier calculation (pure) — done (b839028, fix cd20e48), 18 tests passing
+- [x] Task 3: Periods and averages (pure) — done (a15de5e), 12 tests passing
 
 ## Phase 2: Configuration DocTypes (`phase-2-configuration.md`)
 
