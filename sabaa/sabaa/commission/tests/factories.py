@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from erpnext.accounts.party import get_party_account
 
 COMPANY = "Saba Trading Group"
 
@@ -118,11 +119,15 @@ def make_sales_invoice(
 	items: list[tuple[str, float]],
 	is_return: int = 0,
 	pos_account: str | None = None,
+	pos_paid: float | None = None,
+	opening_account: str | None = None,
 ) -> str:
 	"""Submit an invoice; `items` is (item_code, net amount) with qty 1 (-1 on returns).
 
-	With `pos_account` the invoice is a POS invoice paid in full in cash to that account.
+	With `pos_account` it is a POS invoice paid in cash to that account, in full unless `pos_paid` is given.
+	With `opening_account` (a balance-sheet account) it is an opening invoice booked to that account.
 	"""
+	sign = -1 if is_return else 1
 	invoice = frappe.get_doc(
 		{
 			"doctype": "Sales Invoice",
@@ -132,8 +137,9 @@ def make_sales_invoice(
 			"set_posting_time": 1,
 			"due_date": posting_date,
 			"is_return": is_return,
+			"is_opening": "Yes" if opening_account else "No",
 			"items": [
-				{"item_code": item_code, "qty": -1 if is_return else 1, "rate": amount}
+				{"item_code": item_code, "qty": sign, "rate": amount, "income_account": opening_account}
 				for item_code, amount in items
 			],
 		}
@@ -141,16 +147,25 @@ def make_sales_invoice(
 	if sales_person:
 		invoice.append("sales_team", {"sales_person": sales_person, "allocated_percentage": 100})
 	if pos_account:
-		invoice.is_pos = 1
-		invoice.pos_profile = frappe.db.get_value("POS Profile", {"company": COMPANY})
-		paid = sum(amount for _item_code, amount in items)
-		invoice.append("payments", {"mode_of_payment": "Cash", "account": pos_account, "amount": paid})
+		paid = pos_paid if pos_paid is not None else sign * sum(amount for _item, amount in items)
+		_add_pos_payment(invoice, pos_account, paid)
 	return invoice.insert().submit().name
 
 
+def _add_pos_payment(invoice, account: str, amount: float) -> None:
+	invoice.is_pos = 1
+	invoice.pos_profile = frappe.db.get_value("POS Profile", {"company": COMPANY})
+	invoice.append("payments", {"mode_of_payment": "Cash", "account": account, "amount": amount})
+
+
 def make_payment_entry(
-	customer: str, posting_date: str, amount: float, paid_to: str, invoice: str | None = None
+	customer: str,
+	posting_date: str,
+	amount: float,
+	paid_to: str,
+	allocations: list[tuple[str, float]] = (),
 ) -> str:
+	"""Receive `amount`; `allocations` is (Sales Invoice, allocated amount)."""
 	payment = frappe.get_doc(
 		{
 			"doctype": "Payment Entry",
@@ -159,19 +174,22 @@ def make_payment_entry(
 			"posting_date": posting_date,
 			"party_type": "Customer",
 			"party": customer,
-			"paid_from": frappe.get_cached_value("Company", COMPANY, "default_receivable_account"),
+			"paid_from": get_party_account("Customer", customer, COMPANY),
 			"paid_to": paid_to,
 			"paid_amount": amount,
 			"received_amount": amount,
 			"reference_no": "TEST",
 			"reference_date": posting_date,
+			"references": [
+				{
+					"reference_doctype": "Sales Invoice",
+					"reference_name": invoice,
+					"allocated_amount": allocated,
+				}
+				for invoice, allocated in allocations
+			],
 		}
 	)
-	if invoice:
-		payment.append(
-			"references",
-			{"reference_doctype": "Sales Invoice", "reference_name": invoice, "allocated_amount": amount},
-		)
 	return payment.insert().submit().name
 
 
@@ -189,7 +207,7 @@ def make_journal_entry(
 	"""
 	reference_type, reference_name = reference or (None, None)
 	customer_row = {
-		"account": frappe.get_cached_value("Company", COMPANY, "default_receivable_account"),
+		"account": get_party_account("Customer", customer, COMPANY),
 		"party_type": "Customer",
 		"party": customer,
 		"credit_in_account_currency": max(amount, 0),

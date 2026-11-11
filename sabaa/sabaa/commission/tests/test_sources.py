@@ -94,7 +94,7 @@ class TestSources(FrappeTestCase):
 
 	def test_collected_allocated_payment(self):
 		invoice = self.invoice("2026-05-03", 4000)
-		make_payment_entry(self.customer, "2026-06-02", 4000, self.collection_account, invoice=invoice)
+		make_payment_entry(self.customer, "2026-06-02", 4000, self.collection_account, [(invoice, 4000)])
 
 		self.assertEqual(self.collected(), [BasisRow(JUNE, self.sales_person, 4000)])
 
@@ -120,9 +120,7 @@ class TestSources(FrappeTestCase):
 		self.invoice("2026-06-20", 1000, sales_person=make_sales_person("Test SP Later"))
 		make_journal_entry(self.customer, "2026-06-02", 600, self.collection_account)
 
-		self.assertEqual(
-			self.collected(), [BasisRow(JUNE, self.sales_person, 600, ATTRIBUTED_BY_CUSTOMER)]
-		)
+		self.assertEqual(self.collected(), [BasisRow(JUNE, self.sales_person, 600, ATTRIBUTED_BY_CUSTOMER)])
 
 	def test_unallocated_without_any_invoice_has_no_sales_person(self):
 		make_journal_entry(self.customer, "2026-06-02", 600, self.collection_account)
@@ -152,8 +150,73 @@ class TestSources(FrappeTestCase):
 		invoice = make_sales_invoice(
 			self.customer, self.sales_person, "2026-05-03", [(self.item, 800), (tea_milk, 200)]
 		)
-		make_payment_entry(self.customer, "2026-05-10", 1000, self.collection_account, invoice=invoice)
+		make_payment_entry(self.customer, "2026-05-10", 1000, self.collection_account, [(invoice, 1000)])
+
+		self.assertEqual(self.collected(exclude_items=[tea_milk]), [BasisRow(MAY, self.sales_person, 800)])
+
+	def test_pos_return_does_not_reduce_collected(self):
+		self.invoice("2026-06-03", 900, pos_account=self.collection_account)
+		self.invoice("2026-06-10", 100, is_return=1, pos_account=self.collection_account)
+
+		self.assertEqual(self.collected(), [BasisRow(JUNE, self.sales_person, 900)])
+
+	def test_pos_part_paid_then_journal_counts_each_month(self):
+		invoice = self.invoice("2026-05-03", 1000, pos_account=self.collection_account, pos_paid=400)
+		make_journal_entry(
+			self.customer, "2026-06-02", 600, self.collection_account, reference=("Sales Invoice", invoice)
+		)
 
 		self.assertEqual(
-			self.collected(exclude_items=[tea_milk]), [BasisRow(MAY, self.sales_person, 800)]
+			self.collected(),
+			[BasisRow(MAY, self.sales_person, 400), BasisRow(JUNE, self.sales_person, 600)],
+		)
+
+	def test_payment_split_across_invoices_of_two_sales_persons(self):
+		other_sales_person = make_sales_person("Test SP B")
+		first = self.invoice("2026-05-03", 300)
+		second = self.invoice("2026-05-04", 700, sales_person=other_sales_person)
+		make_payment_entry(
+			self.customer, "2026-05-10", 1000, self.collection_account, [(first, 300), (second, 700)]
+		)
+
+		self.assertEqual(
+			sorted(self.collected(), key=lambda row: row.amount),
+			[BasisRow(MAY, self.sales_person, 300), BasisRow(MAY, other_sales_person, 700)],
+		)
+
+	def test_customer_group_at_invoice_posting_counts(self):
+		customer = make_customer("Test Moved Customer", "Cash Customers")
+		invoice = make_sales_invoice(customer, self.sales_person, "2026-05-03", [(self.item, 1000)])
+		make_journal_entry(
+			customer, "2026-05-10", 1000, self.collection_account, reference=("Sales Invoice", invoice)
+		)
+		frappe.db.set_value("Customer", customer, "customer_group", self.group)
+		make_journal_entry(customer, "2026-05-20", 250, self.collection_account)
+
+		def rows_for(reader, group):
+			rows = reader(COMPANY, [group], "2026-05-01", "2026-05-31")
+			return [row for row in rows if row.key == self.sales_person]
+
+		self.assertEqual(rows_for(get_invoiced, "Cash Customers"), [BasisRow(MAY, self.sales_person, 1000)])
+		self.assertEqual(rows_for(get_invoiced, self.group), [])
+		self.assertEqual(rows_for(get_collected, "Cash Customers"), [BasisRow(MAY, self.sales_person, 1000)])
+		self.assertEqual(
+			rows_for(get_collected, self.group),
+			[BasisRow(MAY, self.sales_person, 250, ATTRIBUTED_BY_CUSTOMER)],
+		)
+
+	def test_opening_invoice_follows_opening_setting(self):
+		opening = self.invoice("2026-04-30", 900, opening_account=self.other_account)
+		current = make_sales_person("Test SP Current")
+		self.invoice("2026-05-03", 100, sales_person=current)
+		make_payment_entry(self.customer, "2026-05-10", 900, self.collection_account, [(opening, 900)])
+
+		self.assertEqual(self.invoiced(from_date="2026-04-01"), [BasisRow(MAY, current, 100)])
+
+		frappe.db.set_single_value("Commission Settings", "count_opening_balance_collections", 0)
+		self.assertEqual(self.collected(from_date="2026-04-01"), [])
+
+		frappe.db.set_single_value("Commission Settings", "count_opening_balance_collections", 1)
+		self.assertEqual(
+			self.collected(from_date="2026-04-01"), [BasisRow(MAY, current, 900, OPENING_BALANCE)]
 		)

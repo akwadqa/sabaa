@@ -66,7 +66,10 @@ def get_invoiced(
 	to_date: date | str,
 	exclude_items: Iterable[str] = (),
 ) -> list[BasisRow]:
-	"""Net invoiced amount per posting month and invoice sales person; returns count negative."""
+	"""Net invoiced amount per posting month and invoice sales person; returns count negative.
+
+	Groups are matched on the invoice's stored customer group; opening invoices are left out.
+	"""
 	if not customer_groups:
 		return []
 
@@ -86,7 +89,10 @@ def get_collected(
 	to_date: date | str,
 	exclude_items: Iterable[str] = (),
 ) -> list[BasisRow]:
-	"""Customer collections per payment month, attributed to a sales person (see design §6.2)."""
+	"""Customer collections per payment month, attributed to a sales person (see design §6.2).
+
+	"Latest invoice before the payment date" means on or before it: cash customers pay on the invoice day.
+	"""
 	if not customer_groups:
 		return []
 
@@ -95,7 +101,9 @@ def get_collected(
 
 	pos_invoices = _invoice_query(company, customer_groups, from_date, to_date)
 	pos_paid = SalesInvoice.base_paid_amount - SalesInvoice.base_change_amount
-	for row in _sum_by_sales_person(pos_invoices.where(SalesInvoice.is_pos == 1), pos_paid):
+	# POS returns are refunds, and refunds do not reduce collections (business default G1).
+	pos_sales = pos_invoices.where((SalesInvoice.is_pos == 1) & (SalesInvoice.is_return == 0))
+	for row in _sum_by_sales_person(pos_sales, pos_paid):
 		totals[_invoice_bucket(row)] += row.amount
 
 	_subtract_item_amounts(totals, company, customer_groups, from_date, to_date, exclude_items)
@@ -116,12 +124,12 @@ def _add_ledger_collections(
 	)
 
 	for row in rows:
-		if row.against_voucher_type == "Sales Invoice":
-			key, flag = _sales_person_bucket(row.sales_person)
-		elif row.is_against_opening:
+		if "Yes" in (row.journal_opening, row.invoice_opening):
 			if not is_counting_opening:
 				continue
 			key, flag = history.get_bucket(row.party, row.posting_date, OPENING_BALANCE)
+		elif row.against_voucher_type == "Sales Invoice":
+			key, flag = _sales_person_bucket(row.sales_person)
 		else:
 			key, flag = history.get_bucket(row.party, row.posting_date, ATTRIBUTED_BY_CUSTOMER)
 		totals[(month_start(row.posting_date), key, flag)] += row.amount
@@ -130,9 +138,12 @@ def _add_ledger_collections(
 def _get_ledger_collections(
 	company: str, customer_groups: list[str], from_date: date | str, to_date: date | str
 ) -> list[frappe._dict]:
-	"""Customer credits from vouchers that touch a collection account, summed per date/party/target."""
+	"""Customer credits from vouchers that touch a collection account, summed per date/party/target.
+
+	Allocated rows match on the invoice's stored customer group; others on the customer's current group.
+	"""
 	ledger, against_journal = DocType("Payment Ledger Entry"), DocType("Journal Entry")
-	is_against_opening = Coalesce(against_journal.is_opening, "No") == "Yes"
+	against_invoice = SalesInvoice.as_("against_invoice")
 	query = (
 		frappe.qb.from_(ledger)
 		.join(Customer)
@@ -143,13 +154,18 @@ def _get_ledger_collections(
 			& (SalesTeam.parenttype == "Sales Invoice")
 			& (SalesTeam.parent == ledger.against_voucher_no)
 		)
+		.left_join(against_invoice)
+		.on(
+			(ledger.against_voucher_type == "Sales Invoice")
+			& (against_invoice.name == ledger.against_voucher_no)
+		)
 		.left_join(against_journal)
 		.on(
 			(ledger.against_voucher_type == "Journal Entry")
 			& (against_journal.name == ledger.against_voucher_no)
 		)
 		.where(_customer_collection_condition(ledger, company, from_date, to_date))
-		.where(Customer.customer_group.isin(customer_groups))
+		.where(Coalesce(against_invoice.customer_group, Customer.customer_group).isin(customer_groups))
 	)
 	return (
 		query.select(
@@ -157,7 +173,8 @@ def _get_ledger_collections(
 			ledger.party,
 			ledger.against_voucher_type,
 			SalesTeam.sales_person,
-			is_against_opening.as_("is_against_opening"),
+			against_journal.is_opening.as_("journal_opening"),
+			against_invoice.is_opening.as_("invoice_opening"),
 			Sum(-ledger.amount * SALES_TEAM_SHARE).as_("amount"),
 		)
 		.groupby(
@@ -166,6 +183,7 @@ def _get_ledger_collections(
 			ledger.against_voucher_type,
 			SalesTeam.sales_person,
 			against_journal.is_opening,
+			against_invoice.is_opening,
 		)
 		.run(as_dict=True)
 	)
@@ -208,7 +226,7 @@ def _collection_vouchers_query(company: str, from_date: date | str, to_date: dat
 
 
 class InvoiceHistory:
-	"""Sales person of each customer's latest non-return invoice on or before a date."""
+	"""Sales person of each customer's latest non-return, non-opening invoice on or before a date."""
 
 	def __init__(self, invoices: list[frappe._dict]):
 		self._dates: dict[str, list[date]] = defaultdict(list)
@@ -230,6 +248,7 @@ class InvoiceHistory:
 				(SalesInvoice.docstatus == 1)
 				& (SalesInvoice.company == company)
 				& (SalesInvoice.is_return == 0)
+				& (SalesInvoice.is_opening == "No")
 				& SalesInvoice.customer.isin(list(customers))
 				& (SalesInvoice.posting_date <= getdate(to_date))
 			)
@@ -250,15 +269,14 @@ class InvoiceHistory:
 def _invoice_query(company: str, customer_groups: list[str], from_date: date | str, to_date: date | str):
 	return (
 		frappe.qb.from_(SalesInvoice)
-		.join(Customer)
-		.on(Customer.name == SalesInvoice.customer)
 		.left_join(SalesTeam)
 		.on((SalesTeam.parenttype == "Sales Invoice") & (SalesTeam.parent == SalesInvoice.name))
 		.where(
 			(SalesInvoice.docstatus == 1)
 			& (SalesInvoice.company == company)
+			& (SalesInvoice.is_opening == "No")
 			& SalesInvoice.posting_date[getdate(from_date) : getdate(to_date)]
-			& Customer.customer_group.isin(customer_groups)
+			& SalesInvoice.customer_group.isin(customer_groups)
 		)
 	)
 
