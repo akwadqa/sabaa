@@ -19,6 +19,17 @@ class CommissionManualFigure(Document):
 		self.validate_plan()
 		self.validate_month_before_erpnext()
 		self.validate_is_unique()
+		self.validate_not_locked()
+
+	def validate_not_locked(self) -> None:
+		from sabaa.sabaa.doctype.commission_run.commission_run import throw_if_locked
+
+		throw_if_locked(self.plan, self.month, self.month)
+
+	def on_trash(self) -> None:
+		from sabaa.sabaa.doctype.commission_run.commission_run import throw_if_locked
+
+		throw_if_locked(self.plan, self.month, self.month)
 
 	def validate_plan(self) -> None:
 		rule_plan = frappe.db.get_value("Commission Rule", self.rule, "plan")

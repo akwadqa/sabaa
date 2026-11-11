@@ -15,9 +15,20 @@ FULL_SHARE_PERCENT = 100
 
 class CommissionRule(Document):
 	def validate(self) -> None:
+		self.validate_not_locked()
 		self.validate_tiers()
 		self.validate_shares()
 		self.summary = self.get_summary()
+
+	def validate_not_locked(self) -> None:
+		before = self.get_doc_before_save()
+		if not before or get_calculation_fingerprint(before) == get_calculation_fingerprint(self):
+			return
+		from sabaa.sabaa.doctype.commission_run.commission_run import get_locked_runs
+
+		runs = get_locked_runs(self.plan)
+		if runs:
+			frappe.throw(_("Run {0} is approved. Copy the plan to change the rules.").format(runs[0].name))
 
 	def validate_tiers(self) -> None:
 		if self.tier_method != TIERED:
@@ -58,3 +69,22 @@ class CommissionRule(Document):
 			return f"{format_number(self.flat_rate_percent or 0)}% flat rate"
 		count = len(self.unit_rates)
 		return f"{count} unit rate{'' if count == 1 else 's'}"
+
+
+LOCKED_FIELDS = ("basis", "period_mode", "payout_multiplier", "tier_method", "flat_rate_percent", "recipient_source")
+LOCKED_TABLES = {
+	"tiers": ("threshold", "fixed_amount", "excess_percent"),
+	"shares": ("share_name", "percent", "designation", "department", "split"),
+	"basis_sources": ("customer_group", "measure"),
+	"unit_rates": ("item", "uom", "amount_per_unit"),
+}
+
+
+def get_calculation_fingerprint(doc) -> tuple:
+	"""The values that change what an approved run would pay."""
+	fields = tuple(doc.get(field) for field in LOCKED_FIELDS)
+	tables = tuple(
+		tuple(tuple(row.get(column) for column in columns) for row in doc.get(table) or [])
+		for table, columns in LOCKED_TABLES.items()
+	)
+	return fields + tables

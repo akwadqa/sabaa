@@ -17,11 +17,26 @@ SHARE_MEMBER = "Share Member"
 class CommissionAssignment(Document):
 	def validate(self) -> None:
 		self.validate_dates()
+		self.validate_not_locked()
 		self.validate_type_fields()
 
 	def validate_dates(self) -> None:
 		if self.to_date and self.to_date < self.from_date:
 			frappe.throw(_("To Date cannot be before From Date."))
+
+	def validate_not_locked(self) -> None:
+		from sabaa.sabaa.doctype.commission_run.commission_run import throw_if_locked
+
+		before = self.get_doc_before_save()
+		plan = frappe.db.get_value("Commission Rule", self.rule, "plan")
+		throw_if_locked(plan, self.from_date, self.to_date)
+		if before:
+			throw_if_locked(plan, before.from_date, before.to_date)
+
+	def on_trash(self) -> None:
+		from sabaa.sabaa.doctype.commission_run.commission_run import throw_if_locked
+
+		throw_if_locked(frappe.db.get_value("Commission Rule", self.rule, "plan"), self.from_date, self.to_date)
 
 	def validate_type_fields(self) -> None:
 		if self.assignment_type == ASSISTANT_OF and not self.target_sales_person:
