@@ -1,0 +1,80 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "smile24_customer_group",
+  "delivery_charge_account",
+  "carton_uom",
+  "count_opening_balance_collections",
+  "erpnext_start_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "smile24_customer_group",
+   "fieldtype": "Link",
+   "label": "Smile24 Customer Group",
+   "options": "Customer Group",
+   "default": "Online Sales"
+  },
+  {
+   "fieldname": "delivery_charge_account",
+   "fieldtype": "Link",
+   "label": "Delivery Charge Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "carton_uom",
+   "fieldtype": "Link",
+   "label": "Carton UOM",
+   "options": "UOM",
+   "default": "Ctn"
+  },
+  {
+   "fieldname": "count_opening_balance_collections",
+   "fieldtype": "Check",
+   "label": "Count Opening Balance Collections",
+   "default": "1"
+  },
+  {
+   "fieldname": "erpnext_start_date",
+   "fieldtype": "Date",
+   "label": "ERPNext Start Date",
+   "reqd": 1,
+   "description": "First month with ERPNext data. Earlier months need a Manual Figure."
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sabaa",
+ "name": "Commission Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Commission Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
