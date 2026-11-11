@@ -7,7 +7,7 @@ Update this file when a task starts, finishes or is blocked. Record the commit h
 
 ## Phase 1: Foundations (`phase-1-foundations.md`)
 
-- [ ] Task 1: Clean start, package skeleton, settings, role and tender field — status: not started
+- [x] Task 1: Clean start, package skeleton, settings, role and tender field — done (c8980a3), 2 tests passing
 - [ ] Task 2: Tier calculation (pure) — status: not started
 - [ ] Task 3: Periods and averages (pure) — status: not started
 

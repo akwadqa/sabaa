@@ -76,17 +76,17 @@ def flat_rate(basis: float, percent: float) -> float:
 def validate_tiers(tiers: list[Tier]) -> list[str]:
 	problems = []
 	for number, tier in enumerate(tiers, start=1):
-		problems.extend(_validate_tier_values(number, tier))
+		problems.extend(validate_tier_values(number, tier))
 		if number > 1 and tier.threshold <= tiers[number - 2].threshold:
 			previous = tiers[number - 2].threshold
 			problems.append(
 				f"Tier {number} must start above tier {number - 1} "
-				f"({tier.threshold:g} is not above {previous:g})."
+				f"({format_number(tier.threshold)} is not above {format_number(previous)})."
 			)
 	return problems
 
 
-def _validate_tier_values(number: int, tier: Tier) -> list[str]:
+def validate_tier_values(number: int, tier: Tier) -> list[str]:
 	problems = []
 	if tier.threshold < 0:
 		problems.append(f"Tier {number} threshold cannot be negative.")
@@ -95,3 +95,7 @@ def _validate_tier_values(number: int, tier: Tier) -> list[str]:
 	if tier.excess_percent < 0 or tier.excess_percent > 100:
 		problems.append(f"Tier {number} excess percent must be between 0 and 100.")
 	return problems
+
+
+def format_number(value: float) -> str:
+	return f"{value:,.2f}".rstrip("0").rstrip(".")

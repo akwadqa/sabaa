@@ -83,5 +83,23 @@ class TestValidateTiers(unittest.TestCase):
 		)
 
 	def test_negative_values_and_percent_over_100(self):
-		problems = validate_tiers([Tier(-1, -5, 101)])
-		self.assertEqual(len(problems), 3)
+		self.assertEqual(
+			validate_tiers([Tier(-1, -5, 101)]),
+			[
+				"Tier 1 threshold cannot be negative.",
+				"Tier 1 fixed amount cannot be negative.",
+				"Tier 1 excess percent must be between 0 and 100.",
+			],
+		)
+
+	def test_order_message_uses_thousands_separators(self):
+		self.assertEqual(
+			validate_tiers([Tier(1050000, 1), Tier(1000000, 1)]),
+			["Tier 2 must start above tier 1 (1,000,000 is not above 1,050,000)."],
+		)
+
+	def test_order_message_keeps_decimals(self):
+		self.assertEqual(
+			validate_tiers([Tier(131250.5, 1), Tier(100, 1)]),
+			["Tier 2 must start above tier 1 (100 is not above 131,250.5)."],
+		)
