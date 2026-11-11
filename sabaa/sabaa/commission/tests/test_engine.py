@@ -191,3 +191,30 @@ class TestEngine(FrappeTestCase):
 		(line,) = CommissionEngine(self.plan, MAY).calculate_rule(rule)
 
 		self.assertEqual((line.basis_amount, line.amount, line.employee), (120000, 1050, self.employee))
+
+	def test_non_member_sales_does_not_ask_for_figures(self):
+		team = make_sales_person("Test Engine Team", is_group=1)
+		make_sales_person("Test Engine Member", make_employee("Test Engine Member Emp"), team)
+		rule = self.make_rule(
+			"Team Salesperson", period_mode="Rolling 3-Month Average", tiers=self.tiers(SALESPERSON_TIERS), team_group=team
+		)
+
+		lines = self.run_engine(rule, [BasisRow(MAY, self.sales_person, 5000)])
+		outsider = next(line for line in lines if line.sales_person == self.sales_person)
+		problems = CommissionEngine(self.plan, MAY, FakeReader([BasisRow(MAY, self.sales_person, 5000)]))
+		problems.calculate_rule(rule)
+
+		self.assertEqual(outsider.status, LineStatus.NOT_ASSIGNED)
+		self.assertFalse([p for p in problems.problems if self.sales_person in p.message])
+
+	def test_delivery_without_driver(self):
+		rule = self.make_rule(
+			"Smile24 Drivers", category="Smile24", basis="Delivery Fees", attribute_by="Invoice Driver",
+			tier_method="Flat Rate", flat_rate_percent=50,
+		)
+		engine = CommissionEngine(self.plan, MAY, FakeReader(delivery=[DeliveryRow(MAY, None, None, 30, 2)]))
+
+		(line,) = engine.calculate_rule(rule)
+
+		self.assertEqual((line.status, line.amount), (LineStatus.NOT_ASSIGNED, 15))
+		self.assertEqual([p.message for p in engine.problems], ["Smile24 Drivers: some delivery invoices have no driver."])

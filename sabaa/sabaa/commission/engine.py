@@ -87,9 +87,9 @@ class CommissionEngine:
 		lines = []
 		for key in sorted(keys, key=lambda key: key or ""):
 			line = self.new_line(rule, sales_person=key)
+			self.assign_attributed(line, rule, key, members, employees)
 			self.set_basis(line, rule, values.get(key, {}), months, manual_months, key)
 			self.set_tier(line, rule, rule.get_tiers())
-			self.assign_attributed(line, rule, key, members, employees)
 			lines.append(line)
 		return lines
 
@@ -157,7 +157,11 @@ class CommissionEngine:
 			line.amount = flt(amount * (rule.payout_multiplier or 1), 2)
 			line.month_values = {format_month(self.month): row.fee_amount}
 			line.notes = [_("{0} free orders").format(row.free_order_count)]
-			if not row.employee:
+			if not row.driver:
+				line.status = LineStatus.NOT_ASSIGNED
+				line.notes.append(_("These delivery invoices have no driver."))
+				self.add_problem(rule, _("{0}: some delivery invoices have no driver.").format(rule.rule_name), rule)
+			elif not row.employee:
 				self.flag_no_employee(line, rule, _("Driver {0} has no employee.").format(row.driver), {"doctype": "Driver", "name": row.driver})
 			lines.append(line)
 		return lines
@@ -173,8 +177,10 @@ class CommissionEngine:
 		line.month_values = {format_month(month): value for month, value in month_values.items()}
 		missing = [month for month, value in month_values.items() if value is None]
 		if missing:
-			line.status = LineStatus.MISSING_DATA
 			line.notes.append(basis_module.missing_month_note(missing))
+			if line.status == LineStatus.NOT_ASSIGNED:
+				return  # sales outside the team: show them, but ask for no figures
+			line.status = LineStatus.MISSING_DATA
 			for month in missing:
 				message = _("{0}: {1} figure missing for {2}.").format(rule.rule_name, format_month(month), label or _("the company"))
 				self.add_problem(rule, message, {"action": "manual_figures", "rule": rule.name})
@@ -182,7 +188,7 @@ class CommissionEngine:
 		line.basis_amount = flt(sum(month_values.values()) / len(months), 2)
 
 	def set_tier(self, line, rule, tiers) -> None:
-		if line.status == LineStatus.MISSING_DATA:
+		if line.basis_amount is None:
 			return
 		multiplier = rule.payout_multiplier or 1
 		if rule.tier_method == TIERED:
