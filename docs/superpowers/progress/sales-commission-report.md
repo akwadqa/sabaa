@@ -39,6 +39,10 @@ Update this file when a task starts, finishes or is blocked. Record the commit h
 
 - [x] Task 13: Validation on real data and handover docs — done; suite 125 tests passing (1 skipped)
 
+## Final review
+
+Whole-branch review found 2 Critical and 8 Important issues; all fixed in c329c11 with regression tests. 16 Minor items are deferred (see final message). Suite: 16 modules, 132 tests OK, 1 skipped.
+
 ## Validation on real data (sabaa.local, 2026-11-12)
 
 Default plan created; Commission Settings: start 2026-05-01, delivery account `4203 - Delivery Charges - STG`.
