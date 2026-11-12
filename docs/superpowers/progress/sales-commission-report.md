@@ -41,7 +41,7 @@ Update this file when a task starts, finishes or is blocked. Record the commit h
 
 ## Final review
 
-Whole-branch review found 2 Critical and 8 Important issues; all fixed in c329c11 with regression tests. 16 Minor items are deferred (see final message). Suite: 16 modules, 132 tests OK, 1 skipped.
+Whole-branch review found 2 Critical and 8 Important issues; all fixed in c329c11 with regression tests. 16 Minor items are deferred (see final message). Suite: 16 modules, 133 tests OK, 1 skipped.
 
 ## Validation on real data (sabaa.local, 2026-11-12)
 
