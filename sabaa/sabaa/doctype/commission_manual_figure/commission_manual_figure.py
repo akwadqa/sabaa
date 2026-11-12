@@ -8,7 +8,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.query_builder import DocType
 from frappe.query_builder.functions import IfNull
-from frappe.utils import formatdate, getdate
+from frappe.utils import flt, formatdate, getdate
 
 from sabaa.sabaa.commission.periods import month_start
 
@@ -22,14 +22,22 @@ class CommissionManualFigure(Document):
 		self.validate_not_locked()
 
 	def validate_not_locked(self) -> None:
-		from sabaa.sabaa.doctype.commission_run.commission_run import throw_if_locked
-
-		throw_if_locked(self.plan, self.month, self.month)
+		before = self.get_doc_before_save()
+		if before and flt(before.amount) == flt(self.amount) and before.month == self.month:
+			return
+		self.throw_if_used_by_approved_run()
+		if before:
+			self.throw_if_used_by_approved_run(before.month)
 
 	def on_trash(self) -> None:
-		from sabaa.sabaa.doctype.commission_run.commission_run import throw_if_locked
+		self.throw_if_used_by_approved_run()
 
-		throw_if_locked(self.plan, self.month, self.month)
+	def throw_if_used_by_approved_run(self, month=None) -> None:
+		from sabaa.sabaa.doctype.commission_run.commission_run import get_figure_lock, throw_locked
+
+		lock = get_figure_lock(self.plan, self.rule, month or self.month)
+		if lock:
+			throw_locked(*lock)
 
 	def validate_plan(self) -> None:
 		rule_plan = frappe.db.get_value("Commission Rule", self.rule, "plan")

@@ -61,6 +61,8 @@ def save_missing_figures(plan: str, rows: list[dict]) -> None:
 			if existing:
 				frappe.delete_doc("Commission Manual Figure", existing)
 			continue
+		if existing and flt(frappe.db.get_value("Commission Manual Figure", existing, "amount")) == flt(row.amount):
+			continue
 		doc = frappe.get_doc("Commission Manual Figure", existing) if existing else frappe.new_doc("Commission Manual Figure")
 		doc.update({"rule": row.rule, "plan": plan, "month": row.month, "sales_person": row.sales_person, "amount": flt(row.amount)})
 		doc.save()

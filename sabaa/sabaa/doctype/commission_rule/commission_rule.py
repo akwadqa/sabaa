@@ -22,8 +22,14 @@ class CommissionRule(Document):
 
 	def validate_not_locked(self) -> None:
 		before = self.get_doc_before_save()
-		if not before or get_calculation_fingerprint(before) == get_calculation_fingerprint(self):
+		if before and get_calculation_fingerprint(before) == get_calculation_fingerprint(self):
 			return
+		self.throw_if_plan_locked()
+
+	def on_trash(self) -> None:
+		self.throw_if_plan_locked()
+
+	def throw_if_plan_locked(self) -> None:
 		from sabaa.sabaa.doctype.commission_run.commission_run import get_locked_runs
 
 		runs = get_locked_runs(self.plan)
@@ -71,12 +77,17 @@ class CommissionRule(Document):
 		return f"{count} unit rate{'' if count == 1 else 's'}"
 
 
-LOCKED_FIELDS = ("basis", "period_mode", "payout_multiplier", "tier_method", "flat_rate_percent", "recipient_source")
+LOCKED_FIELDS = (
+	"basis", "period_mode", "payout_multiplier", "tier_method", "flat_rate_percent", "recipient_source",
+	"attribute_by", "headcount_base", "headcount_share", "scale_amounts", "bonus_after_count", "bonus_per_unit",
+	"team_group", "paired_rule", "is_waiting_for_business",
+)
 LOCKED_TABLES = {
 	"tiers": ("threshold", "fixed_amount", "excess_percent"),
 	"shares": ("share_name", "percent", "designation", "department", "split"),
 	"basis_sources": ("customer_group", "measure"),
 	"unit_rates": ("item", "uom", "amount_per_unit"),
+	"member_designations": ("designation",),
 }
 
 

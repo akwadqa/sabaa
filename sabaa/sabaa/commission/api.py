@@ -73,7 +73,28 @@ def copy_plan(plan: str, new_name: str, valid_from: str, valid_to: str | None = 
 		rule_copy.paired_rule = None
 		rule_copy.insert()
 	_relink_paired_rules(plan, copy.name)
+	_copy_assignments(plan, copy.name, valid_from)
 	return copy.name
+
+
+def _copy_assignments(source_plan: str, target_plan: str, valid_from: str) -> None:
+	"""Copy people setup still open on the new plan's start, starting no earlier than that date."""
+	from frappe.utils import getdate
+
+	start = getdate(valid_from)
+	new_rules = dict(frappe.get_all("Commission Rule", filters={"plan": target_plan}, fields=["rule_name", "name"], as_list=True))
+	for rule in frappe.get_all("Commission Rule", filters={"plan": source_plan}, fields=["name", "rule_name"]):
+		rows = frappe.get_all(
+			"Commission Assignment",
+			filters={"rule": rule.name},
+			fields=["employee", "assignment_type", "target_sales_person", "share_name", "percent", "from_date", "to_date"],
+		)
+		for row in rows:
+			if row.to_date and getdate(row.to_date) < start:
+				continue
+			frappe.get_doc(
+				{**row, "doctype": "Commission Assignment", "rule": new_rules[rule.rule_name], "from_date": max(getdate(row.from_date), start)}
+			).insert()
 
 
 def _relink_paired_rules(source_plan: str, target_plan: str) -> None:

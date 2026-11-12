@@ -12,6 +12,7 @@ from frappe.query_builder.functions import IfNull
 ASSISTANT_OF = "Assistant Of"
 POOL_SHARE_PERCENT = "Pool Share %"
 SHARE_MEMBER = "Share Member"
+LOCKED_VALUE_FIELDS = ("rule", "employee", "assignment_type", "target_sales_person", "share_name", "percent")
 
 
 class CommissionAssignment(Document):
@@ -19,24 +20,59 @@ class CommissionAssignment(Document):
 		self.validate_dates()
 		self.validate_not_locked()
 		self.validate_type_fields()
+		self.validate_no_overlap()
 
 	def validate_dates(self) -> None:
 		if self.to_date and self.to_date < self.from_date:
 			frappe.throw(_("To Date cannot be before From Date."))
 
 	def validate_not_locked(self) -> None:
-		from sabaa.sabaa.doctype.commission_run.commission_run import throw_if_locked
+		"""Refuse a change that alters what an approved month paid; ending a row after it is allowed."""
+		from sabaa.sabaa.doctype.commission_run.commission_run import get_covered_locked_runs, throw_locked
 
-		before = self.get_doc_before_save()
 		plan = frappe.db.get_value("Commission Rule", self.rule, "plan")
-		throw_if_locked(plan, self.from_date, self.to_date)
-		if before:
-			throw_if_locked(plan, before.from_date, before.to_date)
+		before = self.get_doc_before_save()
+		new = get_covered_locked_runs(plan, self.from_date, self.to_date)
+		old = get_covered_locked_runs(plan, before.from_date, before.to_date) if before else set()
+		changed = (old ^ new) or (before and (old & new) and self.has_locked_value_change(before))
+		if changed:
+			run_name, month = sorted((old ^ new) or (old & new), key=lambda run: run[1])[0]
+			throw_locked(run_name, month)
+
+	def has_locked_value_change(self, before) -> bool:
+		# Empty values read back as None or 0 depending on the path; both mean "not set".
+		return any((before.get(field) or None) != (self.get(field) or None) for field in LOCKED_VALUE_FIELDS)
 
 	def on_trash(self) -> None:
-		from sabaa.sabaa.doctype.commission_run.commission_run import throw_if_locked
+		from sabaa.sabaa.doctype.commission_run.commission_run import get_covered_locked_runs, throw_locked
 
-		throw_if_locked(frappe.db.get_value("Commission Rule", self.rule, "plan"), self.from_date, self.to_date)
+		plan = frappe.db.get_value("Commission Rule", self.rule, "plan")
+		covered = sorted(get_covered_locked_runs(plan, self.from_date, self.to_date), key=lambda run: run[1])
+		if covered:
+			throw_locked(*covered[0])
+
+	def validate_no_overlap(self) -> None:
+		"""Two open rows of one kind for one person would pay them twice."""
+		assignment = DocType("Commission Assignment")
+		query = (
+			frappe.qb.from_(assignment)
+			.select(assignment.name)
+			.where(
+				(assignment.rule == self.rule)
+				& (assignment.employee == self.employee)
+				& (assignment.assignment_type == self.assignment_type)
+				& (assignment.name != (self.name or ""))
+				& (assignment.from_date <= (self.to_date or date.max))
+				& (IfNull(assignment.to_date, date.max) >= self.from_date)
+			)
+		)
+		if self.assignment_type == SHARE_MEMBER:
+			query = query.where(assignment.share_name == self.share_name)
+		other = query.run(pluck=True)
+		if other:
+			frappe.throw(
+				_("{0} already has an overlapping {1} row on this rule: {2}.").format(self.employee, self.assignment_type, other[0])
+			)
 
 	def validate_type_fields(self) -> None:
 		if self.assignment_type == ASSISTANT_OF and not self.target_sales_person:

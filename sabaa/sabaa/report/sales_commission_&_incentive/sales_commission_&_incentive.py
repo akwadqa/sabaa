@@ -29,10 +29,27 @@ def execute(filters: dict | None = None):
 		return [], [], _("No active commission plan covers {0}.").format(format_month(months[-1]))
 
 	lines, problems = calculate(plan, months)
+	message = get_run_banner(plan, months, lines) + get_message(problems)
 	lines = [line for line in lines if matches(line, filters)]
 	if filters.view == DETAIL:
-		return get_detail_columns(), [get_detail_row(line) for line in lines], get_message(problems)
-	return get_summary_columns(), get_summary_rows(lines), get_message(problems)
+		return get_detail_columns(), [get_detail_row(line) for line in lines], message
+	return get_summary_columns(), get_summary_rows(lines), message
+
+
+def get_run_banner(plan: str, months: list[date], lines: list[CommissionLine]) -> str:
+	"""Warn when approved runs for these months paid a different total than the live figures."""
+	runs = frappe.get_all(
+		"Commission Run", filters={"plan": plan, "docstatus": 1, "month": ("in", months)}, fields=["name", "total_amount"]
+	)
+	if not runs:
+		return ""
+	live = sum(flt(line.amount) for line in lines if line.employee and line.status != LineStatus.NOT_ASSIGNED)
+	approved = sum(flt(run.total_amount) for run in runs)
+	difference = flt(live - approved, 2)
+	if not difference:
+		return ""
+	names = ", ".join(run.name for run in runs)
+	return f"<p><b>{_('Approved run {0} paid {1}. The live figures differ by {2} QAR.').format(names, frappe.format(approved, 'Currency'), frappe.format(difference, 'Currency'))}</b></p>"
 
 
 def get_months(filters: frappe._dict) -> list[date]:

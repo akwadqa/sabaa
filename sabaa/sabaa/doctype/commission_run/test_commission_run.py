@@ -23,7 +23,8 @@ class TestCommissionRun(FrappeTestCase):
 		self.addCleanup(lambda: frappe.db.rollback(save_point=self._savepoint))
 
 		frappe.db.set_single_value("Commission Settings", "erpnext_start_date", "2026-05-01")
-		self.plan = make_plan("Test Run Plan", "2026-01-01", "2026-12-31", "Draft").name
+		frappe.db.set_value("Commission Plan", {"status": "Active"}, "status", "Draft")
+		self.plan = make_plan("Test Run Plan", "2026-01-01", "2026-12-31").name
 		self.employee = make_employee("Test Run Salesman")
 		self.sales_person = make_sales_person("Test Run SP", self.employee)
 		group = make_customer_group("Test Run Group")
@@ -61,7 +62,7 @@ class TestCommissionRun(FrappeTestCase):
 	def test_duplicate_month_refused(self):
 		run = self.make_run()
 
-		self.assertRaisesRegex(frappe.ValidationError, f"Run {run.name} already covers May 2026", self.make_run, "2026-05-20")
+		self.assertRaisesRegex(frappe.ValidationError, f"Run {run.name} already covers May 2026 for this company", self.make_run, "2026-05-20")
 
 	def test_approval_refused_with_setup_problem(self):
 		make_sales_invoice(self.customer, make_sales_person("Test Run Unlinked SP"), "2026-05-05", [(self.item, 5000)])
@@ -91,3 +92,53 @@ class TestCommissionRun(FrappeTestCase):
 		)
 
 		self.assertRaisesRegex(frappe.ValidationError, f"{run.name} is approved for May 2026.", figure.insert)
+
+	def test_assignment_can_be_ended_after_an_approved_month(self):
+		other = make_employee("Test Run Other")
+		assignment = frappe.get_doc(
+			{"doctype": "Commission Assignment", "rule": self.rule.name, "employee": other,
+			 "assignment_type": "Exclude", "from_date": "2026-01-01"}
+		).insert()
+		run = self.calculated_run()
+		run.submit()
+
+		assignment.to_date = "2026-06-30"
+		assignment.save()
+
+		assignment.from_date = "2026-06-01"
+		self.assertRaisesRegex(frappe.ValidationError, f"{run.name} is approved for May 2026.", assignment.save)
+
+	def test_figure_of_a_rule_the_run_did_not_use_stays_editable(self):
+		quarterly = frappe.get_doc(
+			{"doctype": "Commission Rule", "plan": self.plan, "rule_name": "Quarterly", "category": "Smile24",
+			 "period_mode": "Quarterly Average", "tiers": [{"threshold": 1000, "fixed_amount": 100}]}
+		).insert()
+		run = self.calculated_run()
+		run.submit()
+
+		frappe.get_doc(
+			{"doctype": "Commission Manual Figure", "rule": quarterly.name, "month": "2026-04-01", "amount": 10}
+		).insert()
+
+	def test_unchanged_figure_can_be_saved_after_approval(self):
+		figure = frappe.get_doc(
+			{"doctype": "Commission Manual Figure", "rule": self.rule.name, "month": "2026-04-01", "amount": 10}
+		).insert()
+		run = self.calculated_run()
+		run.submit()
+
+		figure.save()
+		figure.amount = 20
+		self.assertRaisesRegex(frappe.ValidationError, f"{run.name} is approved for May 2026.", figure.save)
+
+	def test_run_needs_the_active_plan(self):
+		frappe.db.set_value("Commission Plan", self.plan, "status", "Draft")
+
+		self.assertRaisesRegex(frappe.ValidationError, "Plan Test Run Plan is not the active plan for May 2026.", self.make_run)
+
+	def test_overlapping_assignment_refused(self):
+		other = make_employee("Test Run Twice")
+		row = {"doctype": "Commission Assignment", "rule": self.rule.name, "employee": other, "assignment_type": "Include", "from_date": "2026-05-01"}
+		frappe.get_doc(row).insert()
+
+		self.assertRaisesRegex(frappe.ValidationError, "already has an overlapping Include row", frappe.get_doc(dict(row, from_date="2026-06-01")).insert)

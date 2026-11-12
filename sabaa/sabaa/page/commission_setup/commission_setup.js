@@ -6,7 +6,9 @@ const STATUS_COLORS = { Ready: "green", "Needs setup": "orange", "Waiting for bu
 
 frappe.pages["commission-setup"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Commission Setup"), single_column: true });
-	wrapper.commission_setup = new CommissionSetup(page);
+	frappe.require("/assets/sabaa/js/commission/commission_dialogs.js", () => {
+		wrapper.commission_setup = new CommissionSetup(page);
+	});
 };
 
 frappe.pages["commission-setup"].on_page_show = function (wrapper) {

@@ -79,3 +79,15 @@ class TestSalesCommissionReport(FrappeTestCase):
 		_columns, data, _message = self.run_report(period_type="Quarter", quarter="2026-Q2")
 
 		self.assertEqual(data[0]["smile24"], 367 * 3)
+
+	def test_banner_when_live_differs_from_approved_run(self):
+		self.sell("2026-05-05", 90000)
+		run = frappe.get_doc({"doctype": "Commission Run", "plan": self.plan, "month": "2026-05-01"}).insert()
+		run.calculate()
+		run.submit()
+		self.sell("2026-05-07", 20000)
+
+		_columns, _data, message = self.run_report()
+
+		self.assertIn(f"Approved run {run.name} paid", message)
+		self.assertIn("differ by", message)

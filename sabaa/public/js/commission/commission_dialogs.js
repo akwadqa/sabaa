@@ -2,6 +2,7 @@
 // For license information, please see license.txt
 // People and Missing-months dialogs, shared by the Commission Setup page and the Commission Rule form.
 
+(function () {
 window.sabaa_commission = window.sabaa_commission || {};
 const SC_API = "sabaa.sabaa.commission.api";
 const esc = (value) => frappe.utils.escape_html(value == null ? "" : String(value));
@@ -18,16 +19,13 @@ sabaa_commission.people_dialog = async function (rule, month, on_saved) {
 		fields: [
 			{ fieldname: "table", fieldtype: "HTML" },
 			{ fieldname: "total", fieldtype: "HTML" },
-			{ fieldname: "add_section", fieldtype: "Section Break", label: __("Add assistant"), collapsible: 1 },
-			{ fieldname: "assistant", label: __("Assistant"), fieldtype: "Link", options: "Employee" },
-			{ fieldname: "col", fieldtype: "Column Break" },
-			{ fieldname: "salesman", label: __("Works with salesman"), fieldtype: "Link", options: "Sales Person" },
+			...add_person_fields(doc, uses_percent),
 		],
 		primary_action_label: __("Save"),
 		primary_action: async () => {
 			const rows = collect_people(dialog, uses_percent);
-			const { assistant, salesman } = dialog.get_values();
-			if (assistant && salesman) rows.push({ employee: assistant, assistant_of: salesman });
+			const added = added_person_row(doc, dialog.get_values());
+			if (added) rows.push(added);
 			await frappe.call(`${SC_API}.save_people`, { rule, month, rows });
 			dialog.hide();
 			frappe.show_alert({ message: __("Saved"), indicator: "green" });
@@ -38,12 +36,42 @@ sabaa_commission.people_dialog = async function (rule, month, on_saved) {
 	dialog.show();
 };
 
+function add_person_fields(doc, uses_percent) {
+	if (doc.basis === "Paired Basis") {
+		return [
+			{ fieldname: "add_section", fieldtype: "Section Break", label: __("Add assistant") },
+			{ fieldname: "assistant", label: __("Assistant"), fieldtype: "Link", options: "Employee" },
+			{ fieldname: "col", fieldtype: "Column Break" },
+			{ fieldname: "salesman", label: __("Works with salesman"), fieldtype: "Link", options: "Sales Person" },
+		];
+	}
+	const shares = (doc.shares || []).map((share) => share.share_name);
+	const fields = [
+		{ fieldname: "add_section", fieldtype: "Section Break", label: __("Add person") },
+		{ fieldname: "new_employee", label: __("Employee"), fieldtype: "Link", options: "Employee" },
+	];
+	if (shares.length) fields.push({ fieldname: "new_share", label: __("Share"), fieldtype: "Select", options: shares.join("\n"), default: shares[0] });
+	if (uses_percent) fields.push({ fieldname: "new_percent", label: __("Share %"), fieldtype: "Float" });
+	return fields;
+}
+
+function added_person_row(doc, values) {
+	if (values.assistant && values.salesman) return { employee: values.assistant, assistant_of: values.salesman };
+	if (!values.new_employee) return null;
+	const row = { employee: values.new_employee };
+	const share = (doc.shares || []).find((s) => s.share_name === values.new_share);
+	if (!share) row.include = 1;
+	else if (share.split === "By Assignment %") row.percent = values.new_percent || 0;
+	else row.share_name = share.share_name;
+	return row;
+}
+
 function render_people(dialog, people, uses_percent) {
 	const header = `<tr><th>${__("Name")}</th><th>${__("Source")}</th><th>${__("Exclude")}</th>${uses_percent ? `<th>${__("Share %")}</th>` : ""}</tr>`;
 	const rows = people
 		.map(
 			(p) => `<tr data-employee="${esc(p.employee)}">
-				<td>${esc(p.employee_name)}${p.assistant_of ? ` <span class="text-muted">· ${__("assists {0}", [esc(p.assistant_of)])}</span>` : ""}${p.employee ? "" : ` <span class="text-danger">${__("no employee")}</span>`}</td>
+				<td>${esc(p.employee_name)}${p.assistant_of ? ` <span class="text-muted">· ${__("assists {0}", [esc(p.assistant_of)])}</span>` : ""}${p.share_name ? ` <span class="text-muted">· ${esc(p.share_name)}</span>` : ""}${p.employee ? "" : ` <span class="text-danger">${__("no employee")}</span>`}</td>
 				<td><span class="indicator-pill gray">${esc(__(p.source))}</span></td>
 				<td><input type="checkbox" class="exclude" ${p.excluded ? "checked" : ""} ${p.employee ? "" : "disabled"}></td>
 				${uses_percent ? `<td><input type="number" class="form-control input-xs percent" style="width: 90px" value="${p.percent ?? ""}"></td>` : ""}
@@ -148,3 +176,4 @@ function collect_figures(dialog) {
 	});
 	return rows;
 }
+})();

@@ -157,7 +157,7 @@
    "fieldtype": "Link",
    "label": "Team Group",
    "options": "Sales Person",
-   "depends_on": "eval:doc.recipient_source!='Each Attributed Person'",
+   "depends_on": "eval:doc.recipient_source != 'Pool'",
    "link_filters": "[[\"Sales Person\",\"is_group\",\"=\",1]]"
   },
   {
@@ -257,7 +257,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-11-11 00:00:00.000000",
+ "modified": "2026-11-12 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sabaa",
  "name": "Commission Rule",

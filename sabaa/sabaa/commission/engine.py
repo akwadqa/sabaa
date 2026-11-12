@@ -13,6 +13,7 @@ from sabaa.sabaa.commission.basis import (
 	BasisReader,
 	build_month_values,
 	format_month,
+	get_flag_notes,
 	get_period_range,
 )
 from sabaa.sabaa.commission.constants import LineStatus
@@ -79,7 +80,7 @@ class CommissionEngine:
 		return self.new_line(rule, status=LineStatus.WAITING, notes=[note] if note else [])
 
 	def get_attributed_lines(self, rule, months: list[date]) -> list[CommissionLine]:
-		values, manual_months = self.get_values(rule, months, is_pooled=False)
+		values, manual_months, flags = self.get_values(rule, months, is_pooled=False)
 		members = self.get_team_members(rule)
 		keys = set(values) | {member.sales_person for member in members.values()}
 		employees = get_sales_person_employees([key for key in keys if key])
@@ -90,11 +91,12 @@ class CommissionEngine:
 			self.assign_attributed(line, rule, key, members, employees)
 			self.set_basis(line, rule, values.get(key, {}), months, manual_months, key)
 			self.set_tier(line, rule, rule.get_tiers())
+			line.notes += get_flag_notes(flags, key)
 			lines.append(line)
 		return lines
 
 	def get_supervisor_lines(self, rule, months: list[date]) -> list[CommissionLine]:
-		values, manual_months = self.get_values(rule, months, is_pooled=False)
+		values, manual_months, _flags = self.get_values(rule, months, is_pooled=False)
 		supervisors = get_group_supervisors(rule.team_group) if rule.team_group else {}
 		if not supervisors:
 			self.add_problem(rule, _("Group {0} has no supervisor.").format(rule.team_group), {"doctype": "Sales Person", "name": rule.team_group})
@@ -114,7 +116,7 @@ class CommissionEngine:
 			self.add_problem(rule, _("{0}: choose the salesman rule it follows.").format(rule.rule_name), rule)
 			return []
 		paired = frappe.get_doc("Commission Rule", rule.paired_rule)
-		values, manual_months = self.get_values(paired, months, is_pooled=False)
+		values, manual_months, _flags = self.get_values(paired, months, is_pooled=False)
 
 		lines = []
 		for assignment in get_assignments(rule.name, months[0], month_end(self.month), "Assistant Of"):
@@ -126,13 +128,14 @@ class CommissionEngine:
 		return lines
 
 	def get_pool_lines(self, rule, months: list[date]) -> list[CommissionLine]:
-		values, manual_months = self.get_values(rule, months, is_pooled=True)
+		values, manual_months, flags = self.get_values(rule, months, is_pooled=True)
 		members_by_share, percents = self.get_share_members(rule)
 		headcount = len(members_by_share.get(rule.headcount_share) or []) if rule.headcount_share else 0
 
 		pool = self.new_line(rule)
 		self.set_basis(pool, rule, values.get(None, {}), months, manual_months, None)
 		self.set_tier(pool, rule, self.get_scaled_tiers(rule, headcount))
+		pool.notes += get_flag_notes(flags, None)
 		if pool.status == LineStatus.MISSING_DATA:
 			return [pool]
 
@@ -140,7 +143,8 @@ class CommissionEngine:
 		for allocation in split_pool(pool.amount, rule.shares, members_by_share, percents):
 			line = self.new_line(rule, **{key: getattr(pool, key) for key in BASIS_FIELDS})
 			line.share_name, line.share_percent, line.amount = allocation.share_name, allocation.share_percent, allocation.amount
-			line.status, line.notes = allocation.status, [allocation.note] if allocation.note else []
+			line.status = allocation.status
+			line.notes = ([allocation.note] if allocation.note else []) + pool.notes
 			if allocation.member:
 				self.set_member(line, allocation.member)
 			if allocation.note:

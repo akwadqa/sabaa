@@ -19,17 +19,25 @@ BLOCKING_STATUSES = (str(LineStatus.NEEDS_SETUP), str(LineStatus.MISSING_DATA))
 class CommissionRun(Document):
 	def validate(self) -> None:
 		self.month = month_start(getdate(self.month))
+		self.validate_plan_is_active()
 		self.validate_unique_month()
 		if self.docstatus == 0:
 			self.status = CALCULATED if self.lines else DRAFT
 
+	def validate_plan_is_active(self) -> None:
+		from sabaa.sabaa.doctype.commission_plan.commission_plan import CommissionPlan
+
+		self.company = frappe.db.get_value("Commission Plan", self.plan, "company")
+		if CommissionPlan.get_active_plan(self.company, self.month) != self.plan:
+			frappe.throw(_("Plan {0} is not the active plan for {1}.").format(self.plan, format_month(self.month)))
+
 	def validate_unique_month(self) -> None:
 		other = frappe.db.get_value(
 			"Commission Run",
-			{"plan": self.plan, "month": self.month, "docstatus": ("<", 2), "name": ("!=", self.name)},
+			{"company": self.company, "month": self.month, "docstatus": ("<", 2), "name": ("!=", self.name)},
 		)
 		if other:
-			frappe.throw(_("Run {0} already covers {1} for this plan.").format(other, format_month(self.month)))
+			frappe.throw(_("Run {0} already covers {1} for this company.").format(other, format_month(self.month)))
 
 	@frappe.whitelist()
 	def calculate(self) -> None:
@@ -92,17 +100,35 @@ def is_month_locked(plan: str, month: date) -> str | None:
 	return next((run.name for run in get_locked_runs(plan) if getdate(run.month) == month), None)
 
 
-def get_run_locking_months(plan: str, start: date, end: date | None) -> frappe._dict | None:
-	"""The first approved or paid run whose basis months (its month and the 2 before) touch start..end."""
-	start = month_start(getdate(start))
-	for run in get_locked_runs(plan):
-		basis_start = add_months(getdate(run.month), -2)
-		if getdate(run.month) >= start and (end is None or basis_start <= getdate(end)):
-			return run
-	return None
+def get_covered_locked_runs(plan: str, start: date, end: date | None) -> set[tuple[str, date]]:
+	"""Approved or paid runs whose payout month falls in start..end (an empty end has no end)."""
+	start, end = getdate(start), getdate(end) if end else None
+	return {
+		(run.name, getdate(run.month))
+		for run in get_locked_runs(plan)
+		if month_start(start) <= getdate(run.month) and (end is None or getdate(run.month) <= end)
+	}
 
 
-def throw_if_locked(plan: str, start: date, end: date | None) -> None:
-	run = get_run_locking_months(plan, start, end)
-	if run:
-		frappe.throw(_("{0} is approved for {1}.").format(run.name, format_month(run.month)))
+def throw_locked(run_name: str, month: date) -> None:
+	frappe.throw(_("{0} is approved for {1}.").format(run_name, format_month(month)))
+
+
+def get_figure_lock(plan: str, rule: str, month: date) -> tuple[str, date] | None:
+	"""An approved run that used this manual figure: it has lines for the rule (or a rule paired to it)
+	and the figure's month is one of the run's basis months (the run month and the 2 before)."""
+	month = month_start(getdate(month))
+	rules = [rule, *frappe.get_all("Commission Rule", filters={"paired_rule": rule}, pluck="name")]
+	run, line = frappe.qb.DocType("Commission Run"), frappe.qb.DocType("Commission Run Line")
+	used = (
+		frappe.qb.from_(run)
+		.join(line)
+		.on(line.parent == run.name)
+		.where((run.plan == plan) & (run.docstatus == 1) & line.rule.isin(rules))
+		.where(run.month[month : add_months(month, 2)])
+		.select(run.name, run.month)
+		.distinct()
+		.orderby(run.month)
+		.run(as_dict=True)
+	)
+	return (used[0].name, getdate(used[0].month)) if used else None

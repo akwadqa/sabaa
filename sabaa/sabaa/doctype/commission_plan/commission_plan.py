@@ -14,8 +14,20 @@ ACTIVE = "Active"
 class CommissionPlan(Document):
 	def validate(self) -> None:
 		self.validate_dates()
+		self.validate_exclusions_not_locked()
 		if self.status == ACTIVE:
 			self.validate_no_active_overlap()
+
+	def validate_exclusions_not_locked(self) -> None:
+		before = self.get_doc_before_save()
+		groups = lambda doc: sorted(row.customer_group for row in doc.excluded_customer_groups)  # noqa: E731
+		if not before or groups(before) == groups(self):
+			return
+		from sabaa.sabaa.doctype.commission_run.commission_run import get_locked_runs
+
+		runs = get_locked_runs(self.name)
+		if runs:
+			frappe.throw(_("Run {0} is approved. Copy the plan to change the rules.").format(runs[0].name))
 
 	def validate_dates(self) -> None:
 		if self.valid_to and getdate(self.valid_to) < getdate(self.valid_from):

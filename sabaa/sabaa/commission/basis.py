@@ -5,7 +5,7 @@ from datetime import date
 
 import frappe
 from frappe import _
-from frappe.utils import getdate
+from frappe.utils import flt, getdate
 
 from sabaa.sabaa.commission import sources
 from sabaa.sabaa.commission.periods import month_end
@@ -65,22 +65,33 @@ class BasisReader:
 
 def build_month_values(
 	rows: list[sources.BasisRow], months: list[date], erpnext_start: date, figures_rule: str, is_pooled: bool
-) -> tuple[MonthValues, list[date]]:
-	"""Values per key and month. Months before ERPNext come from manual figures; returns missing months too.
+) -> tuple[MonthValues, list[date], dict[tuple[str | None, str], float]]:
+	"""Values per key and month, the manual months, and flagged amounts per (key, flag).
 
-	A key with no rows in an ERPNext month gets 0 for it; a manual month with no figure is left out.
+	Months before ERPNext come from manual figures. A key with no rows in an ERPNext month gets 0 for it;
+	a manual month with no figure is left out.
 	"""
 	values: MonthValues = defaultdict(dict)
+	flags: dict[tuple[str | None, str], float] = defaultdict(float)
 	for row in rows:
 		if row.month in months:
 			key = None if is_pooled else row.key
 			values[key][row.month] = values[key].get(row.month, 0) + row.amount
+			if row.flag:
+				flags[(key, row.flag)] += row.amount
 
 	manual_months = [month for month in months if month < erpnext_start]
 	figures = get_manual_figures(figures_rule, manual_months) if manual_months else {}
 	for (month, key), amount in figures.items():
 		values[None if is_pooled else key][month] = amount
-	return values, manual_months
+	return values, manual_months, flags
+
+
+def get_flag_notes(flags: dict[tuple[str | None, str], float], key: str | None) -> list[str]:
+	"""Notes such as "12,300 attributed by customer" for one key."""
+	from sabaa.sabaa.commission.tiers import format_number
+
+	return [f"{format_number(flt(amount, 2))} {flag}" for (flag_key, flag), amount in sorted(flags.items(), key=lambda item: item[0][1]) if flag_key == key and amount]
 
 
 def get_period_range(months: list[date]) -> tuple[date, date]:

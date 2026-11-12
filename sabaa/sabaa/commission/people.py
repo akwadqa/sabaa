@@ -17,6 +17,7 @@ from sabaa.sabaa.commission.tiers import format_number
 from sabaa.sabaa.doctype.commission_assignment.commission_assignment import get_assignments
 
 EXCLUDE, INCLUDE, POOL_SHARE, ASSISTANT_OF = "Exclude", "Include", "Pool Share %", "Assistant Of"
+SHARE_MEMBER = "Share Member"
 
 
 def get_people(rule_name: str, month: date | str) -> list[dict]:
@@ -25,11 +26,12 @@ def get_people(rule_name: str, month: date | str) -> list[dict]:
 	excluded = {row.employee for row in get_assignments(rule.name, start, end, EXCLUDE)}
 	percents = {row.employee: flt(row.percent) for row in get_assignments(rule.name, start, end, POOL_SHARE)}
 	assistants = {row.employee: row.target_sales_person for row in get_assignments(rule.name, start, end, ASSISTANT_OF)}
+	share_members = {row.employee: row.share_name for row in get_assignments(rule.name, start, end, SHARE_MEMBER)}
 
 	members = get_base_members(rule, start, end)
 	members += [get_hand_added_member(row.employee) for row in get_assignments(rule.name, start, end, INCLUDE)]
 	known = {member.employee for member in members}
-	members += [get_hand_added_member(e) for e in list(percents) + list(assistants) if e not in known]
+	members += [get_hand_added_member(e) for e in {*percents, *assistants, *share_members} if e not in known]
 
 	seen, people = set(), []
 	for member in members:
@@ -42,6 +44,7 @@ def get_people(rule_name: str, month: date | str) -> list[dict]:
 				"excluded": member.employee in excluded,
 				"percent": percents.get(member.employee),
 				"assistant_of": assistants.get(member.employee),
+				"share_name": share_members.get(member.employee),
 			}
 		)
 	return people
@@ -57,7 +60,10 @@ def get_base_members(rule, start: date, end: date) -> list[Member]:
 
 
 def save_people(rule_name: str, month: date | str, rows: list[dict]) -> None:
-	"""Rows: {employee, exclude?, percent?, assistant_of?}. Changes start on the first day of `month`."""
+	"""Rows: {employee, exclude?, include?, percent?, share_name?, assistant_of?}.
+
+	Changes start on the first day of `month`.
+	"""
 	start = month_start(getdate(month))
 	rows = [frappe._dict(row) for row in rows]
 	validate_percents(rows)
@@ -68,6 +74,10 @@ def save_people(rule_name: str, month: date | str, rows: list[dict]) -> None:
 			replace_assignment(rule_name, row.employee, POOL_SHARE, start, percent=flt(row.percent))
 		if row.get("assistant_of"):
 			replace_assignment(rule_name, row.employee, ASSISTANT_OF, start, target_sales_person=row.assistant_of)
+		if row.get("share_name"):
+			replace_assignment(rule_name, row.employee, SHARE_MEMBER, start, share_name=row.share_name)
+		if row.get("include"):
+			replace_assignment(rule_name, row.employee, INCLUDE, start)
 
 
 def validate_percents(rows: list[frappe._dict]) -> None:

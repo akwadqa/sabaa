@@ -218,3 +218,13 @@ class TestEngine(FrappeTestCase):
 
 		self.assertEqual((line.status, line.amount), (LineStatus.NOT_ASSIGNED, 15))
 		self.assertEqual([p.message for p in engine.problems], ["Smile24 Drivers: some delivery invoices have no driver."])
+
+	def test_flagged_collections_are_noted(self):
+		rule = self.salesperson_rule("Monthly")
+
+		(line,) = self.run_engine(
+			rule, [BasisRow(MAY, self.sales_person, 80000), BasisRow(MAY, self.sales_person, 12300, "attributed by customer")]
+		)
+
+		self.assertEqual(line.basis_amount, 92300)
+		self.assertIn("12,300 attributed by customer", line.notes)

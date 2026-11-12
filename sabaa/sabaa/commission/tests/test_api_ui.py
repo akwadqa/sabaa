@@ -74,3 +74,17 @@ class TestSetupApi(FrappeTestCase):
 		rows = api.get_missing_figure_grid(self.plan)["rules"][0]["rows"]
 		row = next(r for r in rows if r["sales_person"] == self.sales_person)
 		self.assertEqual(row["values"], {"2026-03-01": None, "2026-04-01": 90000})
+
+	def test_add_share_member_and_copy_plan_keeps_people(self):
+		rule = self.make_rule(
+			"Tender Pool", category="Tenders", recipient_source="Pool", is_waiting_for_business=1,
+			shares=[{"share_name": "Management", "percent": 100, "split": "Equal"}],
+		)
+		api.save_people(rule, "2026-06-01", [{"employee": self.employee, "share_name": "Management"}])
+		self.assertEqual(api.get_people(rule, "2026-06-01")[0]["share_name"], "Management")
+
+		new_plan = api.copy_plan(self.plan, "Test UI Plan Copy", "2026-07-01", "2026-12-31")
+
+		new_rule = frappe.db.get_value("Commission Rule", {"plan": new_plan, "rule_name": "Tender Pool"})
+		rows = frappe.get_all("Commission Assignment", filters={"rule": new_rule}, fields=["employee", "share_name", "from_date"])
+		self.assertEqual([(r.employee, r.share_name, r.from_date) for r in rows], [(self.employee, "Management", getdate("2026-07-01"))])
