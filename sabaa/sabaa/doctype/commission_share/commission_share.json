@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "share_name",
+  "percent",
+  "designation",
+  "department",
+  "split"
+ ],
+ "fields": [
+  {
+   "fieldname": "share_name",
+   "fieldtype": "Data",
+   "label": "Share Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "percent",
+   "fieldtype": "Percent",
+   "label": "Percent",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "split",
+   "fieldtype": "Select",
+   "label": "Split",
+   "options": "Equal\nBy Assignment %",
+   "default": "Equal",
+   "in_list_view": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sabaa",
+ "name": "Commission Share",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
