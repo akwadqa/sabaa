@@ -504,8 +504,20 @@
         const app = d.app.filter(passes),
           ok = app.filter((r) => r.docstatus === 1 && r.status === "Approved");
         const today = ok.filter((r) => r.from_date <= TODAY && r.to_date >= TODAY);
+        // Leave days between from and to. A leave that crosses the range is split by calendar days, so each
+        // period and month gets only its own share.
+        const daysBetween = (r, from, to) => {
+          const start = r.from_date > from ? r.from_date : from,
+            end = r.to_date < to ? r.to_date : to;
+          if (start > end) return 0;
+          const span = daysTo(r.to_date) - daysTo(r.from_date) + 1;
+          return ((daysTo(end) - daysTo(start) + 1) / span) * (+r.total_leave_days || 0);
+        };
+        const p = period(),
+          daysInPeriod = (r) => daysBetween(r, p[0], p[1]),
+          monthEnd = (m) => iso(new Date(+m.slice(0, 4), +m.slice(5, 7), 0));
         const pend = app.filter((r) => r.docstatus === 0 && r.status === "Open"),
-          inp = ok.filter((r) => inP(r.from_date));
+          inp = ok.filter((r) => daysInPeriod(r) > 0);
         const alloc = (d.alloc || []).filter(passes);
         const bal = group(
           alloc,
@@ -536,18 +548,14 @@
               route: ["Leave Application", { status: "Approved", from_date: ["<=", TODAY], to_date: [">=", TODAY] }],
             }),
             card("Pending Approval", num(pend.length), { tone: "amber", route: ["Leave Application", { status: "Open" }] }),
-            card("Leave Days Taken", num(sum(inp, (r) => r.total_leave_days)), { tone: "gray" }),
+            card("Leave Days Taken", num(sum(inp, daysInPeriod)), { tone: "gray" }),
             card("Leave Applications", num(app.filter((r) => inP(r.from_date)).length), { tone: "gray" }),
           ]) +
           grid("g-2", [
             cols("Leave Days per Month", [
               {
                 name: "Days",
-                values: byMonth(
-                  ok,
-                  (r) => r.from_date,
-                  (r) => r.total_leave_days,
-                ),
+                values: MONTHS.map((m) => sum(ok, (r) => daysBetween(r, m + "-01", monthEnd(m)))),
               },
             ]),
             bars(
@@ -555,7 +563,7 @@
               group(
                 inp,
                 (r) => r.leave_type,
-                (r) => r.total_leave_days,
+                daysInPeriod,
               ),
             ),
             bars("Taken vs Allocated", bal, { cls: "b3" }),
@@ -982,10 +990,12 @@
       "relieving_date",
       "contract_end_date",
     ];
-    EMPS =
-      (await getList("Employee", std.concat(["nationality", "sponsorship", "place_of_work", "custom_return_from_vacation"]))) ||
-      (await getList("Employee", std)) ||
-      [];
+    // Optional fields depend on installed apps and custom fields: request only the ones that exist.
+    await new Promise((resolve) => frappe.model.with_doctype("Employee", resolve));
+    const optional = ["nationality", "sponsorship", "place_of_work", "custom_return_from_vacation"].filter((f) =>
+      frappe.meta.has_field("Employee", f),
+    );
+    EMPS = (await getList("Employee", std.concat(optional))) || [];
     EMPS.forEach((e) => {
       e.employee = e.name;
     });
