@@ -101,6 +101,8 @@ jinja = {
 # before_install = "sabaa.install.before_install"
 # after_install = "sabaa.install.after_install"
 
+after_migrate = ["sabaa.sabaa.custom_html_block.sync_custom_html_blocks"]
+
 # Uninstallation
 # ------------
 

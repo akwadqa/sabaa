@@ -1,0 +1,284 @@
+.hrd {
+  font-family: inherit;
+  color: var(--text-color, #1f272e);
+  font-size: 13px;
+}
+.hrd[dir="rtl"] {
+  text-align: right;
+}
+.hrd-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.hrd-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+.hrd-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hrd-filters select,
+.hrd-filters button {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #d1d8dd);
+  background: var(--control-bg, #f4f5f6);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.hrd-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-color, #d1d8dd);
+  margin-bottom: 14px;
+}
+.hrd-tab {
+  padding: 8px 14px;
+  border: 0;
+  background: none;
+  color: var(--text-muted, #6c7680);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+}
+.hrd-tab.on {
+  color: var(--primary, #2490ef);
+  border-bottom-color: var(--primary, #2490ef);
+}
+.grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.g-kpi {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.g-2 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+.kpi,
+.panel {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #d1d8dd);
+  border-radius: 10px;
+}
+.kpi {
+  padding: 12px 14px;
+  border-inline-start: 4px solid var(--primary, #2490ef);
+}
+.kpi.link {
+  cursor: pointer;
+}
+.kpi.link:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.kpi-v {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  direction: ltr;
+  unicode-bidi: plaintext;
+}
+.kpi-l {
+  color: var(--text-muted, #6c7680);
+  margin-top: 2px;
+}
+.kpi-s {
+  font-size: 11px;
+  color: var(--text-muted, #6c7680);
+  margin-top: 2px;
+}
+.kpi.red {
+  border-inline-start-color: #e24c4c;
+}
+.kpi.red .kpi-v {
+  color: #e24c4c;
+}
+.kpi.amber {
+  border-inline-start-color: #e79913;
+}
+.kpi.green {
+  border-inline-start-color: #2f9d58;
+}
+.kpi.gray {
+  border-inline-start-color: #98a1a9;
+}
+.panel {
+  padding: 12px 14px;
+  min-width: 0;
+  overflow: hidden;
+}
+.panel h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.empty {
+  color: var(--text-muted, #6c7680);
+  padding: 8px 0;
+}
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 40%) 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0;
+}
+.bar-l {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bar-t {
+  height: 10px;
+  background: var(--control-bg, #f0f2f4);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bar-f {
+  height: 100%;
+  background: var(--primary, #2490ef);
+  border-radius: 6px;
+}
+.bar-f.b2 {
+  background: #2f9d58;
+}
+.bar-f.b3 {
+  background: #e79913;
+}
+.bar-f.b4 {
+  background: #e24c4c;
+}
+.bar-v {
+  font-weight: 600;
+  direction: ltr;
+  unicode-bidi: plaintext;
+}
+/* Chart and pill classes are hrd- prefixed: Frappe loads desk.bundle.css into the block,
+   and its Bootstrap .col / .pill rules would otherwise apply (15px padding broke the chart). */
+.hrd-cols {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  height: 150px;
+  padding-top: 6px;
+  overflow: hidden;
+}
+.hrd-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.hrd-col-b {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+}
+.hrd-col-f {
+  flex: 1 1 0;
+  min-width: 1px;
+  max-width: 9px;
+  min-height: 1px;
+  background: var(--primary, #2490ef);
+  border-radius: 3px 3px 0 0;
+}
+.hrd-col-f.s2 {
+  background: #e24c4c;
+}
+.hrd-col-x {
+  flex: 0 0 14px;
+  height: 14px;
+  line-height: 14px;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-muted, #6c7680);
+  white-space: nowrap;
+  text-align: center;
+  overflow: hidden;
+}
+.legend {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted, #6c7680);
+  margin-top: 8px;
+}
+.legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--primary, #2490ef);
+  margin-inline-end: 4px;
+}
+.legend i.s2 {
+  background: #e24c4c;
+}
+.tbl-wrap {
+  overflow-x: auto;
+}
+table.tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tbl th,
+.tbl td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color, #e2e6e9);
+  text-align: start;
+  white-space: nowrap;
+}
+.tbl th {
+  color: var(--text-muted, #6c7680);
+  font-weight: 600;
+  font-size: 12px;
+}
+.hrd-pill {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #eef1f3;
+  color: #46525c;
+}
+.hrd-pill.red {
+  background: #fde8e8;
+  color: #c22f2f;
+}
+.hrd-pill.amber {
+  background: #fdf1dc;
+  color: #a66a05;
+}
+.hrd-pill.green {
+  background: #e4f5ea;
+  color: #1f7a42;
+}
+.hrd-foot {
+  color: var(--text-muted, #6c7680);
+  font-size: 11px;
+  margin-top: 6px;
+}
+.loading {
+  padding: 30px 0;
+  text-align: center;
+  color: var(--text-muted, #6c7680);
+}

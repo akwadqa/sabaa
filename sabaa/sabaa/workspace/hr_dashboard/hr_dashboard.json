@@ -1,0 +1,32 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"hrdash01\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"HR Dashboard\",\"col\":12}}]",
+ "creation": "2026-11-15 10:25:02.175874",
+ "custom_blocks": [
+  {
+   "custom_block_name": "HR Dashboard",
+   "label": "HR Dashboard"
+  }
+ ],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "hr",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "HR Dashboard",
+ "links": [],
+ "modified": "2026-11-15 11:49:20.711844",
+ "modified_by": "Administrator",
+ "module": "Sabaa",
+ "name": "HR Dashboard",
+ "number_cards": [],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 0.0,
+ "shortcuts": [],
+ "title": "HR Dashboard"
+}
