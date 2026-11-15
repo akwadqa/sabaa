@@ -32,6 +32,7 @@
     "No data": "لا توجد بيانات",
     "Not available (no permission or module not in use)": "غير متاح (لا توجد صلاحية أو الوحدة غير مستخدمة)",
     "Not Set": "غير محدد",
+    "Select a company to compare amounts": "اختر شركة لمقارنة المبالغ",
     Updated: "آخر تحديث",
     "Figures follow your permissions": "الأرقام حسب صلاحياتك",
     "Active Employees": "الموظفون على رأس العمل",
@@ -145,7 +146,8 @@
     for (let i = 11; i >= 0; i--) o.push(iso(new Date(d.getFullYear(), d.getMonth() - i, 1)).slice(0, 7));
     return o;
   })();
-  const SINCE = MONTHS[0] + "-01";
+  // Earliest date any view needs: the monthly charts start on the 1st, "Last 12 Months" starts a year ago today.
+  const SINCE = [MONTHS[0] + "-01", addDays(TODAY, -365)].sort()[0];
   const monthLabel = (m) => {
     const p = m.split("-");
     return new Date(+p[0], +p[1] - 1, 1).toLocaleDateString(lang === "ar" ? "ar-u-nu-latn" : "en", { month: "short" });
@@ -153,8 +155,21 @@
   const nf = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
   const CUR = (frappe.boot && frappe.boot.sysdefaults && frappe.boot.sysdefaults.currency) || "";
   const num = (v) => nf.format(+v || 0);
-  const money = (v) => (num(v) + " " + CUR).trim();
+  // Amounts are always in their company's currency. Totals across companies with different currencies are
+  // never added together: cards show one total per currency and money charts ask for a company.
+  let CO_CUR = {};
+  const currencyOf = (r) => CO_CUR[r.company || (EMP[r.employee] || {}).company] || CUR;
+  // The single currency of the rows, or null when they mix currencies.
+  const currencyOfAll = (rows) => {
+    const found = [...new Set(rows.map(currencyOf))];
+    return found.length > 1 ? null : found[0] || CO_CUR[state.company] || CUR;
+  };
+  const money = (v, currency) => (num(v) + " " + (currency || CO_CUR[state.company] || CUR)).trim();
   const sum = (rows, f) => rows.reduce((a, r) => a + (+f(r) || 0), 0);
+  const moneyTotal = (rows, f) => {
+    const totals = group(rows, currencyOf, f);
+    return totals.length ? totals.map((g) => money(g.value, g.label)).join(" + ") : money(0);
+  };
   const group = (rows, keyFn, valFn) => {
     const m = new Map();
     rows.forEach((r) => {
@@ -284,7 +299,7 @@
             '" style="width:' +
             Math.max(2, Math.round((i.value / top) * 100)) +
             '%"></div></div><div class="bar-v">' +
-            esc(i.text || (o.money ? money(i.value) : num(i.value))) +
+            esc(i.text || (o.money ? money(i.value, o.money) : num(i.value))) +
             "</div></div>",
         )
         .join(""),
@@ -344,6 +359,9 @@
     );
   const na = () =>
     '<div class="panel"><div class="empty">' + esc(t("Not available (no permission or module not in use)")) + "</div></div>";
+  // Amounts in different currencies cannot share one chart.
+  const pickCompany = (title) =>
+    panel(title, '<div class="empty">' + esc(t("Select a company to compare amounts")) + "</div>");
   const grid = (cls, items) => '<div class="grid ' + cls + '">' + items.join("") + "</div>";
 
   // ---------- Sections (one per tab) ----------
@@ -633,9 +651,20 @@
     payroll: {
       title: "Payroll",
       load: async () => ({
+        // base_* amounts are in the company currency, whatever currency the slip was paid in.
         ss: await getList(
           "Salary Slip",
-          ["name", "employee", "department", "company", "end_date", "gross_pay", "total_deduction", "net_pay", "docstatus"],
+          [
+            "name",
+            "employee",
+            "department",
+            "company",
+            "end_date",
+            "base_gross_pay as gross_pay",
+            "base_total_deduction as total_deduction",
+            "base_net_pay as net_pay",
+            "docstatus",
+          ],
           [
             ["docstatus", "<", 2],
             ["end_date", ">=", SINCE],
@@ -650,12 +679,13 @@
             .sort()
             .pop(),
           cur = ss.filter((r) => ym(r.end_date) === last);
-        const sub = last ? monthLabel(last) + " " + last.slice(0, 4) : "";
+        const sub = last ? monthLabel(last) + " " + last.slice(0, 4) : "",
+          currency = currencyOfAll(ss);
         return (
           grid("g-kpi", [
-            card("Last Payroll Net Pay", money(sum(cur, (r) => r.net_pay)), { sub, route: ["Salary Slip", {}] }),
-            card("Gross Pay", money(sum(cur, (r) => r.gross_pay)), { tone: "green", sub }),
-            card("Deductions", money(sum(cur, (r) => r.total_deduction)), { tone: "red", sub }),
+            card("Last Payroll Net Pay", moneyTotal(cur, (r) => r.net_pay), { sub, route: ["Salary Slip", {}] }),
+            card("Gross Pay", moneyTotal(cur, (r) => r.gross_pay), { tone: "green", sub }),
+            card("Deductions", moneyTotal(cur, (r) => r.total_deduction), { tone: "red", sub }),
             card("Salary Slips", num(cur.length), {
               tone: "gray",
               sub:
@@ -669,25 +699,29 @@
             }),
           ]) +
           grid("g-2", [
-            cols("Net Pay per Month", [
-              {
-                name: "Payroll",
-                values: byMonth(
-                  ss,
-                  (r) => r.end_date,
-                  (r) => r.net_pay,
-                ),
-              },
-            ]),
-            bars(
-              "Net Pay by Department",
-              group(
-                cur,
-                (r) => r.department || (EMP[r.employee] && EMP[r.employee].department),
-                (r) => r.net_pay,
-              ),
-              { money: true },
-            ),
+            currency
+              ? cols("Net Pay per Month", [
+                  {
+                    name: "Payroll",
+                    values: byMonth(
+                      ss,
+                      (r) => r.end_date,
+                      (r) => r.net_pay,
+                    ),
+                  },
+                ])
+              : pickCompany("Net Pay per Month"),
+            currency
+              ? bars(
+                  "Net Pay by Department",
+                  group(
+                    cur,
+                    (r) => r.department || (EMP[r.employee] && EMP[r.employee].department),
+                    (r) => r.net_pay,
+                  ),
+                  { money: currency },
+                )
+              : pickCompany("Net Pay by Department"),
           ])
         );
       },
@@ -731,6 +765,7 @@
               "paid_amount",
               "claimed_amount",
               "return_amount",
+              "exchange_rate",
               "status",
             ],
             [["docstatus", "=", 1]],
@@ -744,7 +779,16 @@
         if (!d.adv && !d.claims) return na();
         const adv = (d.adv || [])
           .filter(passes)
-          .map((r) => Object.assign({ out: (+r.paid_amount || 0) - (+r.claimed_amount || 0) - (+r.return_amount || 0) }, r));
+          .map((r) =>
+            Object.assign(
+              {
+                // Advance amounts are in the advance's currency; the exchange rate converts them to the company's.
+                out:
+                  ((+r.paid_amount || 0) - (+r.claimed_amount || 0) - (+r.return_amount || 0)) * (+r.exchange_rate || 1),
+              },
+              r,
+            ),
+          );
         const cl = (d.claims || []).filter(passes);
         const pend = cl.filter((r) => r.docstatus === 0),
           unpaid = cl.filter((r) => r.docstatus === 1 && r.status === "Unpaid");
@@ -753,9 +797,12 @@
           const c = d.claimMap[x.parent];
           return c && passes(c) && inP(c.posting_date);
         });
+        const owing = adv.filter((r) => r.out > 0),
+          detCurrency = currencyOfAll(det.map((x) => d.claimMap[x.parent])),
+          advCurrency = currencyOfAll(owing);
         return (
           grid("g-kpi", [
-            card("Outstanding Advances", money(sum(adv, (r) => Math.max(0, r.out))), {
+            card("Outstanding Advances", moneyTotal(adv, (r) => Math.max(0, r.out)), {
               route: ["Employee Advance", { docstatus: 1, status: ["in", ["Paid", "Unpaid"]] }],
             }),
             card("Advances Awaiting Payment", num(adv.filter((r) => r.status === "Unpaid").length), {
@@ -765,30 +812,34 @@
             card("Claims Pending Approval", num(pend.length), { tone: "amber", route: ["Expense Claim", { docstatus: 0 }] }),
             card(
               "Unpaid Claims",
-              money(sum(unpaid, (r) => (+r.total_sanctioned_amount || 0) - (+r.total_amount_reimbursed || 0))),
+              moneyTotal(unpaid, (r) => (+r.total_sanctioned_amount || 0) - (+r.total_amount_reimbursed || 0)),
               { tone: "red", route: ["Expense Claim", { status: "Unpaid" }] },
             ),
-            card("Claimed in Period", money(sum(inp, (r) => r.total_claimed_amount)), { tone: "gray" }),
+            card("Claimed in Period", moneyTotal(inp, (r) => r.total_claimed_amount), { tone: "gray" }),
           ]) +
           grid("g-2", [
-            bars(
-              "Claims by Type",
-              group(
-                det,
-                (x) => x.expense_type,
-                (x) => x.amount,
-              ),
-              { money: true },
-            ),
-            bars(
-              "Outstanding Advances by Employee",
-              group(
-                adv.filter((r) => r.out > 0),
-                (r) => ename(r.employee),
-                (r) => r.out,
-              ),
-              { money: true, cls: "b3", limit: 8 },
-            ),
+            detCurrency
+              ? bars(
+                  "Claims by Type",
+                  group(
+                    det,
+                    (x) => x.expense_type,
+                    (x) => x.amount,
+                  ),
+                  { money: detCurrency },
+                )
+              : pickCompany("Claims by Type"),
+            advCurrency
+              ? bars(
+                  "Outstanding Advances by Employee",
+                  group(
+                    owing,
+                    (r) => ename(r.employee),
+                    (r) => r.out,
+                  ),
+                  { money: advCurrency, cls: "b3", limit: 8 },
+                )
+              : pickCompany("Outstanding Advances by Employee"),
           ])
         );
       },
@@ -940,6 +991,8 @@
     });
     EMP = {};
     EMPS.forEach((e) => (EMP[e.name] = e));
+    CO_CUR = {};
+    ((await getList("Company", ["name", "default_currency"])) || []).forEach((c) => (CO_CUR[c.name] = c.default_currency));
   };
 
   // Opens the records behind a card, with the selected company and department where the DocType has them.
