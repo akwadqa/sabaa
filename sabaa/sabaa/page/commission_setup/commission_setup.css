@@ -1,0 +1,8 @@
+.commission-setup { display: flex; flex-direction: column; gap: 24px; padding: 8px 0 32px; }
+.commission-setup .category h4 { margin: 0 0 8px; font-size: 15px; }
+.commission-setup .rule { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+.commission-setup .rule-head { display: flex; align-items: center; gap: 12px; }
+.commission-setup .rule-name { font-weight: 600; flex: 1; }
+.commission-setup .rule-summary { color: var(--text-muted); font-size: 13px; }
+.commission-setup .problem { font-size: 13px; padding-left: 16px; }
+.commission-setup .empty { padding: 48px 0; text-align: center; display: flex; flex-direction: column; gap: 16px; align-items: center; }

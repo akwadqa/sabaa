@@ -5,7 +5,7 @@
    "label": "Profit & Loss"
   }
  ],
- "content": "[{\"id\":\"Jokv3_Rvd3\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Profit & Loss\",\"col\":12}},{\"id\":\"GFwC3iiHP1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Quick Access</b></span>\",\"col\":12}},{\"id\":\"7vRuTzUxtr\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Accounts Payable\",\"col\":3}},{\"id\":\"j4he_ddNP0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Accounts Receivable\",\"col\":3}},{\"id\":\"fIs96vNpJB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"General Ledger\",\"col\":3}},{\"id\":\"9S8WO6aeXB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Item-wise Sales & Stock Movement\",\"col\":3}},{\"id\":\"EIe3Z2FcJW\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Reports</span>\",\"col\":12}},{\"id\":\"ukS8o88Tkb\",\"type\":\"card\",\"data\":{\"card_name\":\"Financial Reports\",\"col\":4}},{\"id\":\"xHWGZHRtB3\",\"type\":\"card\",\"data\":{\"card_name\":\"Profitability Reports\",\"col\":4}},{\"id\":\"ovU_WkYbbV\",\"type\":\"card\",\"data\":{\"card_name\":\"Trial Balance\",\"col\":4}},{\"id\":\"3pR2uqxzbO\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales Reports\",\"col\":4}},{\"id\":\"7MebGsSIp3\",\"type\":\"card\",\"data\":{\"card_name\":\"Buying Reports\",\"col\":4}},{\"id\":\"_bB7VBKSnk\",\"type\":\"card\",\"data\":{\"card_name\":\"Item Reports\",\"col\":4}}]",
+ "content": "[{\"id\":\"Jokv3_Rvd3\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Profit & Loss\",\"col\":12}},{\"id\":\"GFwC3iiHP1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Quick Access</b></span>\",\"col\":12}},{\"id\":\"cmSetup001\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Commission Setup\",\"col\":3}},{\"id\":\"cmReport01\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Commission & Incentive\",\"col\":3}},{\"id\":\"7vRuTzUxtr\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Accounts Payable\",\"col\":3}},{\"id\":\"j4he_ddNP0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Accounts Receivable\",\"col\":3}},{\"id\":\"fIs96vNpJB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"General Ledger\",\"col\":3}},{\"id\":\"9S8WO6aeXB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Item-wise Sales & Stock Movement\",\"col\":3}},{\"id\":\"EIe3Z2FcJW\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Reports</span>\",\"col\":12}},{\"id\":\"ukS8o88Tkb\",\"type\":\"card\",\"data\":{\"card_name\":\"Financial Reports\",\"col\":4}},{\"id\":\"xHWGZHRtB3\",\"type\":\"card\",\"data\":{\"card_name\":\"Profitability Reports\",\"col\":4}},{\"id\":\"ovU_WkYbbV\",\"type\":\"card\",\"data\":{\"card_name\":\"Trial Balance\",\"col\":4}},{\"id\":\"3pR2uqxzbO\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales Reports\",\"col\":4}},{\"id\":\"7MebGsSIp3\",\"type\":\"card\",\"data\":{\"card_name\":\"Buying Reports\",\"col\":4}},{\"id\":\"_bB7VBKSnk\",\"type\":\"card\",\"data\":{\"card_name\":\"Item Reports\",\"col\":4}}]",
  "creation": "2026-03-08 15:34:02.901607",
  "custom_blocks": [],
  "docstatus": 0,
@@ -374,7 +374,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-03-09 01:16:21.920431",
+ "modified": "2026-11-12 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sabaa",
  "name": "Reports",
@@ -416,6 +416,21 @@
    "label": "Item-wise Sales & Stock Movement",
    "link_to": "Item-wise Sales & Stock Movement",
    "report_ref_doctype": "Sales Invoice",
+   "type": "Report"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "label": "Commission Setup",
+   "link_to": "commission-setup",
+   "type": "Page"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "label": "Sales Commission & Incentive",
+   "link_to": "Sales Commission & Incentive",
+   "report_ref_doctype": "Commission Plan",
    "type": "Report"
   }
  ],

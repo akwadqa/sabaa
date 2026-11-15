@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "autoname": "field:plan_name",
+ "creation": "2026-11-11 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "plan_name",
+  "company",
+  "status",
+  "column_break_dates",
+  "valid_from",
+  "valid_to",
+  "section_exclusions",
+  "excluded_customer_groups"
+ ],
+ "fields": [
+  {
+   "fieldname": "plan_name",
+   "fieldtype": "Data",
+   "label": "Plan Name",
+   "unique": 1,
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nActive\nClosed",
+   "default": "Draft",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_dates",
+   "fieldtype": "Column Break",
+   "label": "Column Break Dates"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "label": "Valid From",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "valid_to",
+   "fieldtype": "Date",
+   "label": "Valid To",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_exclusions",
+   "fieldtype": "Section Break",
+   "label": "Exclusions"
+  },
+  {
+   "fieldname": "excluded_customer_groups",
+   "fieldtype": "Table MultiSelect",
+   "label": "Excluded Customer Groups",
+   "options": "Commission Excluded Group"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sabaa",
+ "name": "Commission Plan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "Commission Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "report": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "plan_name"
+}

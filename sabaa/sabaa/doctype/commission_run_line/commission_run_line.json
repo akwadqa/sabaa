@@ -1,0 +1,179 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-11-12 10:00:00.000000",
+ "modified": "2026-11-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "module": "Sabaa",
+ "name": "Commission Run Line",
+ "custom": 0,
+ "field_order": [
+  "employee",
+  "employee_name",
+  "sales_person",
+  "category",
+  "rule",
+  "role_label",
+  "share_name",
+  "share_percent",
+  "basis_label",
+  "month_values_text",
+  "basis_amount",
+  "target",
+  "tier_label",
+  "next_target",
+  "gap_to_next",
+  "fixed_part",
+  "excess_part",
+  "amount",
+  "status",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee",
+   "in_list_view": 1,
+   "columns": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "in_list_view": 1,
+   "columns": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_person",
+   "fieldtype": "Link",
+   "label": "Sales Person",
+   "options": "Sales Person",
+   "read_only": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "label": "Category",
+   "in_list_view": 1,
+   "columns": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "rule",
+   "fieldtype": "Link",
+   "label": "Rule",
+   "options": "Commission Rule",
+   "in_list_view": 1,
+   "columns": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "role_label",
+   "fieldtype": "Data",
+   "label": "Role",
+   "read_only": 1
+  },
+  {
+   "fieldname": "share_name",
+   "fieldtype": "Data",
+   "label": "Share",
+   "read_only": 1
+  },
+  {
+   "fieldname": "share_percent",
+   "fieldtype": "Percent",
+   "label": "Share %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "basis_label",
+   "fieldtype": "Data",
+   "label": "Basis",
+   "read_only": 1
+  },
+  {
+   "fieldname": "month_values_text",
+   "fieldtype": "Small Text",
+   "label": "Months",
+   "read_only": 1
+  },
+  {
+   "fieldname": "basis_amount",
+   "fieldtype": "Currency",
+   "label": "Average",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target",
+   "fieldtype": "Currency",
+   "label": "Target",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tier_label",
+   "fieldtype": "Data",
+   "label": "Tier",
+   "read_only": 1
+  },
+  {
+   "fieldname": "next_target",
+   "fieldtype": "Currency",
+   "label": "Next Target",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gap_to_next",
+   "fieldtype": "Currency",
+   "label": "Gap",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fixed_part",
+   "fieldtype": "Currency",
+   "label": "Fixed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "excess_part",
+   "fieldtype": "Currency",
+   "label": "Excess",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "in_list_view": 1,
+   "columns": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status",
+   "in_list_view": 1,
+   "columns": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 0
+}
