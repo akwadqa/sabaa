@@ -129,7 +129,8 @@
   const tv = (v) => (!v ? t("Not Set") : lang === "ar" ? AR[v] || __(v) : v);
 
   // ---------- Date, number and data helpers ----------
-  const TODAY = frappe.datetime.get_today();
+  // Date window; set again on Refresh so a page left open overnight moves to the new day.
+  let TODAY, MONTHS, SINCE;
   const toDate = (s) => new Date(String(s).slice(0, 10) + "T00:00:00");
   const iso = (d) =>
     d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -140,14 +141,15 @@
   };
   const daysTo = (s) => Math.round((toDate(s) - toDate(TODAY)) / 864e5);
   const ym = (s) => String(s || "").slice(0, 7);
-  const MONTHS = (() => {
-    const d = toDate(TODAY),
-      o = [];
-    for (let i = 11; i >= 0; i--) o.push(iso(new Date(d.getFullYear(), d.getMonth() - i, 1)).slice(0, 7));
-    return o;
-  })();
-  // Earliest date any view needs: the monthly charts start on the 1st, "Last 12 Months" starts a year ago today.
-  const SINCE = [MONTHS[0] + "-01", addDays(TODAY, -365)].sort()[0];
+  const setDateWindow = () => {
+    TODAY = frappe.datetime.get_today();
+    const d = toDate(TODAY);
+    MONTHS = [];
+    for (let i = 11; i >= 0; i--) MONTHS.push(iso(new Date(d.getFullYear(), d.getMonth() - i, 1)).slice(0, 7));
+    // Earliest date any view needs: the monthly charts start on the 1st, "Last 12 Months" starts a year ago today.
+    SINCE = [MONTHS[0] + "-01", addDays(TODAY, -365)].sort()[0];
+  };
+  setDateWindow();
   const monthLabel = (m) => {
     const p = m.split("-");
     return new Date(+p[0], +p[1] - 1, 1).toLocaleDateString(lang === "ar" ? "ar-u-nu-latn" : "en", { month: "short" });
@@ -157,7 +159,8 @@
   const num = (v) => nf.format(+v || 0);
   // Amounts are always in their company's currency. Totals across companies with different currencies are
   // never added together: cards show one total per currency and money charts ask for a company.
-  let CO_CUR = {};
+  let CO_CUR = {},
+    DEPARTMENTS = [];
   const currencyOf = (r) => CO_CUR[r.company || (EMP[r.employee] || {}).company] || CUR;
   // The single currency of the rows, or null when they mix currencies.
   const currencyOfAll = (rows) => {
@@ -936,8 +939,10 @@
     $("#hrd").setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
     $("#title").textContent = t("HR Dashboard");
     $("#f-lang").textContent = lang === "ar" ? "English" : "العربية";
-    const cos = [...new Set(EMPS.map((e) => e.company).filter(Boolean))].sort(),
-      deps = [...new Set(EMPS.map((e) => e.department).filter(Boolean))].sort();
+    // Every readable company and department, so ones without employees (e.g. still hiring) can be selected too.
+    const choices = (values) => [...new Set(values.filter(Boolean))].sort();
+    const cos = choices(Object.keys(CO_CUR).concat(EMPS.map((e) => e.company))),
+      deps = choices(DEPARTMENTS.concat(EMPS.map((e) => e.department)));
     $("#f-company").innerHTML = opt("", t("All Companies"), state.company) + cos.map((c) => opt(c, c, state.company)).join("");
     $("#f-dept").innerHTML =
       opt("", t("All Departments"), state.department) + deps.map((c) => opt(c, c, state.department)).join("");
@@ -1001,6 +1006,7 @@
     });
     EMP = {};
     EMPS.forEach((e) => (EMP[e.name] = e));
+    DEPARTMENTS = ((await getList("Department", ["name"], [["is_group", "=", 0]])) || []).map((r) => r.name);
     CO_CUR = {};
     ((await getList("Company", ["name", "default_currency"])) || []).forEach((c) => (CO_CUR[c.name] = c.default_currency));
   };
@@ -1030,6 +1036,7 @@
       draw();
     } else if (ev.target.id === "f-refresh") {
       cache = {};
+      setDateWindow();
       loadBase().then(() => {
         drawShell();
         draw();
