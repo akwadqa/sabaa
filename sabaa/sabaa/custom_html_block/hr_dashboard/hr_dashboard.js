@@ -170,15 +170,31 @@
     if (!r.ok) throw new Error("HTTP " + r.status);
     return (await r.json()).message;
   };
-  // Returns rows, or null when the user has no access or the DocType / a field does not exist.
+  // Returns all rows, page by page, so totals are never cut off at a page limit.
+  // Returns null when the user has no access or the DocType / a field does not exist.
+  const PAGE_SIZE = 5000;
   const getList = async (doctype, fields, filters, extra) => {
+    extra = extra || {};
+    // A unique last sort key keeps rows from moving between pages.
+    const order_by = (extra.order_by ? extra.order_by + ", " : "") + "name asc";
+    const rows = [];
     try {
-      return (
-        (await api(
-          "frappe.client.get_list",
-          Object.assign({ doctype, fields, filters: filters || [], limit_page_length: 5000 }, extra || {}),
-        )) || []
-      );
+      for (let start = 0; ; start += PAGE_SIZE) {
+        const page =
+          (await api(
+            "frappe.client.get_list",
+            Object.assign({}, extra, {
+              doctype,
+              fields,
+              filters: filters || [],
+              order_by,
+              limit_start: start,
+              limit_page_length: PAGE_SIZE,
+            }),
+          )) || [];
+        rows.push(...page);
+        if (page.length < PAGE_SIZE) return rows;
+      }
     } catch (e) {
       return null;
     }
@@ -214,11 +230,12 @@
       x = String(s).slice(0, 10);
     return x >= p[0] && x <= p[1];
   };
-  // Company / department filter, resolved through the employee where the row has one.
+  // Company / department filter. Values saved on the document win, so history stays with the
+  // company and department it was posted to. The employee is the fallback for rows without them.
   const passes = (row) => {
-    const e = EMP[row.employee];
-    const c = (e && e.company) || row.company,
-      d = (e && e.department) || row.department;
+    const e = EMP[row.employee] || {};
+    const c = row.company || e.company,
+      d = row.department || e.department;
     return (!state.company || !c || c === state.company) && (!state.department || d === state.department);
   };
   const ename = (id) => (EMP[id] && EMP[id].employee_name) || id || "";
@@ -346,7 +363,7 @@
         ),
         pro: await getList(
           "Employee Promotion",
-          ["name", "employee", "promotion_date"],
+          ["name", "employee", "company", "department", "promotion_date"],
           [
             ["docstatus", "=", 1],
             ["promotion_date", ">=", SINCE],
@@ -354,7 +371,7 @@
         ),
         tra: await getList(
           "Employee Transfer",
-          ["name", "employee", "transfer_date"],
+          ["name", "employee", "company", "department", "transfer_date"],
           [
             ["docstatus", "=", 1],
             ["transfer_date", ">=", SINCE],
@@ -437,7 +454,18 @@
       load: async () => ({
         app: await getList(
           "Leave Application",
-          ["name", "employee", "leave_type", "from_date", "to_date", "total_leave_days", "status", "docstatus"],
+          [
+            "name",
+            "employee",
+            "company",
+            "department",
+            "leave_type",
+            "from_date",
+            "to_date",
+            "total_leave_days",
+            "status",
+            "docstatus",
+          ],
           [
             ["docstatus", "<", 2],
             ["to_date", ">=", SINCE],
@@ -445,7 +473,7 @@
         ),
         alloc: await getList(
           "Leave Allocation",
-          ["employee", "leave_type", "total_leaves_allocated", "from_date"],
+          ["employee", "company", "department", "leave_type", "total_leaves_allocated", "from_date", "to_date"],
           [
             ["docstatus", "=", 1],
             ["from_date", "<=", TODAY],
@@ -466,13 +494,21 @@
           (r) => r.leave_type,
           (r) => r.total_leaves_allocated,
         ).map((a) => {
-          const start = alloc
-            .filter((r) => r.leave_type === a.label)
-            .map((r) => r.from_date)
-            .sort()[0];
+          // Count leave only inside the matching employee's own allocation period.
+          const usedIn = (al) =>
+            sum(
+              ok.filter(
+                (r) =>
+                  r.employee === al.employee &&
+                  r.leave_type === al.leave_type &&
+                  r.from_date >= al.from_date &&
+                  r.from_date <= al.to_date,
+              ),
+              (r) => r.total_leave_days,
+            );
           const used = sum(
-            ok.filter((r) => r.leave_type === a.label && r.from_date >= start),
-            (r) => r.total_leave_days,
+            alloc.filter((r) => r.leave_type === a.label),
+            usedIn,
           );
           return { label: a.label, value: used, max: a.value, text: num(used) + " / " + num(a.value) };
         });
@@ -647,7 +683,7 @@
               "Net Pay by Department",
               group(
                 cur,
-                (r) => (EMP[r.employee] && EMP[r.employee].department) || r.department,
+                (r) => r.department || (EMP[r.employee] && EMP[r.employee].department),
                 (r) => r.net_pay,
               ),
               { money: true },
@@ -662,6 +698,8 @@
         const f = [
           "name",
           "employee",
+          "company",
+          "department",
           "posting_date",
           "total_claimed_amount",
           "total_sanctioned_amount",
@@ -683,7 +721,18 @@
         return {
           adv: await getList(
             "Employee Advance",
-            ["name", "employee", "posting_date", "advance_amount", "paid_amount", "claimed_amount", "return_amount", "status"],
+            [
+              "name",
+              "employee",
+              "company",
+              "department",
+              "posting_date",
+              "advance_amount",
+              "paid_amount",
+              "claimed_amount",
+              "return_amount",
+              "status",
+            ],
             [["docstatus", "=", 1]],
           ),
           claims: a || b ? Object.values(m) : null,
@@ -747,18 +796,33 @@
     recruit: {
       title: "Recruitment",
       load: async () => ({
-        jo: await getList("Job Opening", ["name", "designation", "department", "company", "status"], [["status", "=", "Open"]]),
-        app: await getList("Job Applicant", ["name", "status", "creation"], []),
-        off: await getList("Job Offer", ["name", "status", "offer_date", "company"], [["docstatus", "<", 2]]),
-        intv: await getList("Interview", ["name", "status", "scheduled_on"], [["docstatus", "<", 2]]),
+        // All openings, not only open ones: applicants and interviews get their company and department from them.
+        jo: await getList("Job Opening", ["name", "designation", "department", "company", "status"], []),
+        app: await getList("Job Applicant", ["name", "status", "creation", "job_title"], []),
+        off: await getList("Job Offer", ["name", "status", "offer_date", "company", "job_applicant"], [["docstatus", "<", 2]]),
+        intv: await getList(
+          "Interview",
+          ["name", "status", "scheduled_on", "job_opening", "job_applicant"],
+          [["docstatus", "<", 2]],
+        ),
       }),
       render: (d) => {
         if (!d.jo && !d.app && !d.off) return na();
-        const byCo = (r) => !state.company || !r.company || r.company === state.company;
-        const jo = (d.jo || []).filter((r) => byCo(r) && (!state.department || r.department === state.department));
-        const app = d.app || [],
-          off = (d.off || []).filter(byCo),
-          intv = d.intv || [];
+        const JOB = {},
+          APPLICANT = {};
+        (d.jo || []).forEach((j) => (JOB[j.name] = j));
+        (d.app || []).forEach((a) => (APPLICANT[a.name] = a));
+        // Opening linked to the row (directly or through its applicant); an opening row resolves to itself.
+        const openingOf = (r) => JOB[r.job_opening || r.job_title || (APPLICANT[r.job_applicant] || {}).job_title] || r;
+        const inScope = (r) => {
+          const j = openingOf(r),
+            c = r.company || j.company;
+          return (!state.company || !c || c === state.company) && (!state.department || j.department === state.department);
+        };
+        const jo = (d.jo || []).filter((r) => r.status === "Open" && inScope(r));
+        const app = (d.app || []).filter(inScope),
+          off = (d.off || []).filter(inScope),
+          intv = (d.intv || []).filter(inScope);
         const appP = app.filter((r) => inP(r.creation)),
           offP = off.filter((r) => inP(r.offer_date)),
           accP = offP.filter((r) => r.status === "Accepted");
@@ -878,6 +942,15 @@
     EMPS.forEach((e) => (EMP[e.name] = e));
   };
 
+  // Opens the records behind a card, with the selected company and department where the DocType has them.
+  const openList = (doctype, filters) =>
+    frappe.model.with_doctype(doctype, () => {
+      const scoped = Object.assign({}, filters);
+      if (state.company && frappe.meta.has_field(doctype, "company")) scoped.company = state.company;
+      if (state.department && frappe.meta.has_field(doctype, "department")) scoped.department = state.department;
+      frappe.set_route("List", doctype, scoped);
+    });
+
   $("#hrd").addEventListener("click", (ev) => {
     const tab = ev.target.closest("[data-tab]"),
       kpi = ev.target.closest("[data-route]");
@@ -887,7 +960,7 @@
       draw();
     } else if (kpi) {
       const r = JSON.parse(kpi.dataset.route);
-      frappe.set_route("List", r[0], r[1]);
+      openList(r[0], r[1]);
     } else if (ev.target.id === "f-lang") {
       lang = lang === "ar" ? "en" : "ar";
       drawShell();
