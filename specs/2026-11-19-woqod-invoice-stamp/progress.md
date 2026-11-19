@@ -8,7 +8,7 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 
 | Phase | Tasks | Status | Tests | Review |
 |---|---|---|---|---|
-| 1 Fields and stamp rule | 1, 2 | Not started | - | - |
+| 1 Fields and stamp rule | 1, 2 | Done (46b0295, fb9f080) | 17 pass | Done, no fixes |
 | 2 Print format | 3 | Not started | - | - |
 | 3 Validation and handover | 4 | Not started | - | - |
 
@@ -18,13 +18,19 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 - 19 Nov 2026: The user answered Q5 in chat: A (the stamp follows the invoice brand).
 - 19 Nov 2026: Follow-up on Q10 in chat: App Settings is in van_sales, so a sabaa patch adds the stamp fields as custom fields. van_sales does not change.
 
+- 19 Nov 2026: Local tests load this worktree with `PYTHONPATH=/home/work/saba-bench/sabaa-invoice-stamp bench --site sabaa.local ...`. `apps/sabaa` stays on `feat/customer-group-ledger-summary` with its uncommitted work.
+
 ## Open items
 
 - The client sends the Saba and Green World stamps as transparent PNG files.
 - Confirm the Woqod group names on staging and production.
-- Before the first test, agree with the user how the bench loads this worktree (`apps/sabaa` has uncommitted work on `feat/customer-group-ledger-summary`).
 
 ## Log
 
 - 19 Nov 2026: Branch, spec, plan and test plan made (95e6eeb). Draft PR: https://github.com/akwadqa/sabaa/pull/8
 - 19 Nov 2026: Moved the files to `specs/2026-11-19-woqod-invoice-stamp/`, as the user asked. The phases are now in `plan.md`.
+- 19 Nov 2026: Task 1 done (46b0295). Migrate added the 4 fields and ticked `Woqod Group` and `Woqod Group (G.W)` on sabaa.local. 4 tests pass.
+- 19 Nov 2026: Task 2 done (fb9f080). 17 tests pass in `sabaa.sabaa.invoice_stamp.test_invoice_stamp`. Ruff check and format are clean on the new files.
+- 19 Nov 2026: `test_flag_change_shows_on_next_print` saves the Customer Group as a document, like a desk save. The save clears the cache, so the test needs no explicit `clear_document_cache`.
+- 19 Nov 2026: Phase 1 review (frappe-code-review): no defects. Accepted: `test_group_on_invoice_decides` uses any existing customer of another group. The rule reads only `doc.customer_group`, so the customer value does not change the result.
+- 19 Nov 2026: The bench web server still runs `apps/sabaa`. After the Phase 2 migrate, the local desk cannot print "Sales Invoice - Custom" until `apps/sabaa` has this branch, because the server does not know `get_invoice_stamp_url`.
