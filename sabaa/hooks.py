@@ -91,7 +91,8 @@ doctype_js = {
 # add methods and filters to jinja environment
 jinja = {
  	"methods": [
-		"sabaa.hooks_call.fetch_leave_balance"
+		"sabaa.hooks_call.fetch_leave_balance",
+		"sabaa.sabaa.invoice_stamp.get_invoice_stamp_url",
 	]
 }
 
@@ -185,7 +186,10 @@ doc_events = {
     },
 	"Delivery Note": {
         "validate": ["sabaa.override.total_qty_by_uom.calculate_total_qty_by_uom"]
-    }
+    },
+	"App Settings": {
+		"validate": "sabaa.sabaa.invoice_stamp.validate_stamp_files"
+	},
 }
 
 
