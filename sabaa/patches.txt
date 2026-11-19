@@ -27,3 +27,5 @@ sabaa.patches.add_area_fields_to_address
 sabaa.patches.backfill_employee_references_from_official_papers
 sabaa.patches.remove_qid_passport_health_insurance_fields_from_employee
 sabaa.patches.set_purchase_analysis_settings
+sabaa.patches.add_invoice_stamp_fields
+sabaa.patches.enable_invoice_stamp_for_woqod_groups
