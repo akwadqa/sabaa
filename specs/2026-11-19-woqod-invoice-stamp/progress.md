@@ -1,6 +1,6 @@
 # Woqod Invoice Stamp: Progress
 
-Spec: `docs/superpowers/specs/woqod-invoice-stamp/design.md`. Plan: `docs/superpowers/specs/woqod-invoice-stamp/plan-overview.md`.
+**Design:** [design.md](design.md) · **Plan:** [plan.md](plan.md) · **Tests:** [test-plan.md](test-plan.md)
 Branch: `feat/woqod-invoice-stamp`. Worktree: `/home/work/saba-bench/sabaa-invoice-stamp`.
 Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQDUxuLkQ3
 
@@ -27,3 +27,4 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 ## Log
 
 - 19 Nov 2026: Branch, spec, plan and test plan made (95e6eeb). Draft PR: https://github.com/akwadqa/sabaa/pull/8
+- 19 Nov 2026: Moved the files to `specs/2026-11-19-woqod-invoice-stamp/`, as the user asked. The phases are now in `plan.md`.

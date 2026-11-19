@@ -47,7 +47,7 @@ Update the counts in this table when a phase ends.
 
 ## 5. Manual checks (staging, Phase 3)
 
-Upload the client's stamp images first. Record document names in the progress file.
+Upload the client's stamp images first. Record document names in [progress.md](progress.md).
 
 | ID | Steps | Expected |
 |---|---|---|
