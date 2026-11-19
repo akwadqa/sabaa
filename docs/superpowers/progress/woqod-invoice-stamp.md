@@ -1,0 +1,29 @@
+# Woqod Invoice Stamp: Progress
+
+Spec: `docs/superpowers/specs/woqod-invoice-stamp/design.md`. Plan: `docs/superpowers/specs/woqod-invoice-stamp/plan-overview.md`.
+Branch: `feat/woqod-invoice-stamp`. Worktree: `/home/work/saba-bench/sabaa-invoice-stamp`.
+Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQDUxuLkQ3
+
+## Status
+
+| Phase | Tasks | Status | Tests | Review |
+|---|---|---|---|---|
+| 1 Fields and stamp rule | 1, 2 | Not started | - | - |
+| 2 Print format | 3 | Not started | - | - |
+| 3 Validation and handover | 4 | Not started | - | - |
+
+## Decisions
+
+- 19 Nov 2026: The user answered Q1 to Q4 and Q6 to Q11 on the analysis page. All answers are A.
+- 19 Nov 2026: The user answered Q5 in chat: A (the stamp follows the invoice brand).
+- 19 Nov 2026: Follow-up on Q10 in chat: App Settings is in van_sales, so a sabaa patch adds the stamp fields as custom fields. van_sales does not change.
+
+## Open items
+
+- The client sends the Saba and Green World stamps as transparent PNG files.
+- Confirm the Woqod group names on staging and production.
+- Before the first test, agree with the user how the bench loads this worktree (`apps/sabaa` has uncommitted work on `feat/customer-group-ledger-summary`).
+
+## Log
+
+- 19 Nov 2026: Branch, spec, plan, test plan and draft PR made.
