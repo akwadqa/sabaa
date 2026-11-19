@@ -9,7 +9,7 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 | Phase | Tasks | Status | Tests | Review |
 |---|---|---|---|---|
 | 1 Fields and stamp rule | 1, 2 | Done (46b0295, fb9f080) | 17 pass | Done, no fixes |
-| 2 Print format | 3 | Not started | - | - |
+| 2 Print format | 3 | Done (e7b7960, 0874c7b) | 3 pass (20 in all) | Done, 1 fix |
 | 3 Validation and handover | 4 | Not started | - | - |
 
 ## Decisions
@@ -24,6 +24,8 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 
 - The client sends the Saba and Green World stamps as transparent PNG files.
 - Confirm the Woqod group names on staging and production.
+- Stamp size and position: the 100 px stamp sits on the Authorized Signature line and overlaps the company name. The name stays readable with a transparent PNG. Confirm with the client when the real stamps arrive.
+- The local desk on sabaa.local cannot print "Sales Invoice - Custom" while the web server runs `apps/sabaa` without this branch. Tests and the PDF check below ran with this worktree loaded.
 
 ## Log
 
@@ -34,3 +36,11 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 - 19 Nov 2026: `test_flag_change_shows_on_next_print` saves the Customer Group as a document, like a desk save. The save clears the cache, so the test needs no explicit `clear_document_cache`.
 - 19 Nov 2026: Phase 1 review (frappe-code-review): no defects. Accepted: `test_group_on_invoice_decides` uses any existing customer of another group. The rule reads only `doc.customer_group`, so the customer value does not change the result.
 - 19 Nov 2026: The bench web server still runs `apps/sabaa`. After the Phase 2 migrate, the local desk cannot print "Sales Invoice - Custom" until `apps/sabaa` has this branch, because the server does not know `get_invoice_stamp_url`.
+- 19 Nov 2026: Task 3 done (e7b7960). The print tests use the newest submitted Saba invoice on the site and move it to the test group inside the savepoint. On a site with no submitted invoice they skip. This avoids posting ledger entries in tests.
+- 19 Nov 2026: Local PDF check with sample transparent stamps (`/files/sample-saba-stamp.png`, `/files/sample-gw-stamp.png`, set in App Settings on sabaa.local):
+  - SIV/22622/2026 (Woqod Group, SIV series): red Saba stamp on the Authorized Signature line, centered.
+  - GW/SIV/00228/2026 (Woqod Group (G.W), GW series): green Green World stamp, same place.
+  - SIV/22648/2026 (Cash Customers): no stamp, page the same as before.
+  - Woqod Group (the Saba group) also has GW series invoices, for example GW/SIV/00233/2026-1. They get the Green World stamp, as decided in Q5.
+- 19 Nov 2026: Phase 2 review (frappe-code-review): escape the stamp URL in `src` with `| e` (0874c7b). Accepted: the Mobile App test calls the van_sales API in the same process and leaves `frappe.response` set. The next request resets it.
+- 19 Nov 2026: All 20 tests pass (17 + 3).
