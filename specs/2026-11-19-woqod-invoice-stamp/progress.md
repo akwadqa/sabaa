@@ -10,7 +10,7 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 |---|---|---|---|---|
 | 1 Fields and stamp rule | 1, 2 | Done (46b0295, fb9f080) | 17 pass | Done, no fixes |
 | 2 Print format | 3 | Done (e7b7960, 0874c7b) | 3 pass (20 in all) | Done, 1 fix |
-| 3 Validation and handover | 4 | Not started | - | - |
+| 3 Validation and handover | 4 | In progress: tests, lint and guide done. Staging steps wait for the user | 20 pass | Per phase done |
 
 ## Decisions
 
@@ -44,3 +44,4 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
   - Woqod Group (the Saba group) also has GW series invoices, for example GW/SIV/00233/2026-1. They get the Green World stamp, as decided in Q5.
 - 19 Nov 2026: Phase 2 review (frappe-code-review): escape the stamp URL in `src` with `| e` (0874c7b). Accepted: the Mobile App test calls the van_sales API in the same process and leaves `frappe.response` set. The next request resets it.
 - 19 Nov 2026: All 20 tests pass (17 + 3).
+- 19 Nov 2026: Phase 3 Steps 1, 2 and 5 done: 20 tests pass, ruff is clean on the new Python files, [user-guide.md](user-guide.md) written. Steps 4, 6, 7 and 8 (staging comparison, deploy, M1 to M6, PR ready) need the user.
