@@ -1,7 +1,7 @@
 # Woqod Invoice Stamp: Progress
 
 **Design:** [design.md](design.md) · **Plan:** [plan.md](plan.md) · **Tests:** [test-plan.md](test-plan.md)
-Branch: `feat/woqod-invoice-stamp`. Worktree: `/home/work/saba-bench/sabaa-invoice-stamp`.
+Branch: `feat/woqod-invoice-stamp`, checked out in `apps/sabaa`.
 Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQDUxuLkQ3
 
 ## Status
@@ -18,14 +18,13 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 - 19 Nov 2026: The user answered Q5 in chat: A (the stamp follows the invoice brand).
 - 19 Nov 2026: Follow-up on Q10 in chat: App Settings is in van_sales, so a sabaa patch adds the stamp fields as custom fields. van_sales does not change.
 
-- 19 Nov 2026: Local tests load this worktree with `PYTHONPATH=/home/work/saba-bench/sabaa-invoice-stamp bench --site sabaa.local ...`. `apps/sabaa` stays on `feat/customer-group-ledger-summary` with its uncommitted work.
+- 19 Nov 2026: The user asked to work on the branch in `apps/sabaa`, not in a worktree. The Customer Group Ledger Summary work was committed on its own branch (7cb022d), the worktree was removed, and `apps/sabaa` now has `feat/woqod-invoice-stamp`.
 
 ## Open items
 
 - The client sends the Saba and Green World stamps as transparent PNG files.
 - Confirm the Woqod group names on staging and production.
 - Stamp size and position: the 100 px stamp sits on the Authorized Signature line and overlaps the company name. The name stays readable with a transparent PNG. Confirm with the client when the real stamps arrive.
-- The local desk on sabaa.local cannot print "Sales Invoice - Custom" while the web server runs `apps/sabaa` without this branch. Tests and the PDF check below ran with this worktree loaded.
 
 ## Log
 
@@ -45,3 +44,4 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 - 19 Nov 2026: Phase 2 review (frappe-code-review): escape the stamp URL in `src` with `| e` (0874c7b). Accepted: the Mobile App test calls the van_sales API in the same process and leaves `frappe.response` set. The next request resets it.
 - 19 Nov 2026: All 20 tests pass (17 + 3).
 - 19 Nov 2026: Phase 3 Steps 1, 2 and 5 done: 20 tests pass, ruff is clean on the new Python files, [user-guide.md](user-guide.md) written. Steps 4, 6, 7 and 8 (staging comparison, deploy, M1 to M6, PR ready) need the user.
+- 19 Nov 2026: Moved from the worktree to `apps/sabaa`. All 20 tests pass from `apps/sabaa` without a `PYTHONPATH` override.

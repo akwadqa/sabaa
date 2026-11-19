@@ -12,8 +12,7 @@ Steps use checkboxes (`- [ ]`). Tick each step when it is done.
 
 ## Global Constraints
 
-- App `sabaa`, module `Sabaa`, branch `feat/woqod-invoice-stamp`, worktree `/home/work/saba-bench/sabaa-invoice-stamp`.
-- `apps/sabaa` has uncommitted work on `feat/customer-group-ledger-summary`. Before the first test, ask the user how the bench loads this branch. Do not change `apps/sabaa` without asking.
+- App `sabaa`, module `Sabaa`, branch `feat/woqod-invoice-stamp` from `develop`, checked out in `apps/sabaa`.
 - Ruff config in `pyproject.toml`: tabs, double quotes, line length 110, target `py310`.
 - No fixtures. Custom fields come from a patch with `create_custom_fields(..., ignore_validate=True, update=True)` and `"module": "Sabaa"`.
 - No changes in the van_sales app.
