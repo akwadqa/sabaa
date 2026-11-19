@@ -24,7 +24,7 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 
 - The client sends the Saba and Green World stamps as transparent PNG files.
 - Confirm the Woqod group names on staging and production.
-- Stamp size and position: the 100 px stamp sits on the Authorized Signature line and overlaps the company name. The name stays readable with a transparent PNG. Confirm with the client when the real stamps arrive.
+- Stamp size and position: 70 px on the Authorized Signature line. Confirm with the client when the real stamps arrive.
 
 ## Log
 
@@ -45,3 +45,5 @@ Analysis page with the saved answers: https://claude.ai/artifact/THp6Va2zxb5UPQD
 - 19 Nov 2026: All 20 tests pass (17 + 3).
 - 19 Nov 2026: Phase 3 Steps 1, 2 and 5 done: 20 tests pass, ruff is clean on the new Python files, [user-guide.md](user-guide.md) written. Steps 4, 6, 7 and 8 (staging comparison, deploy, M1 to M6, PR ready) need the user.
 - 19 Nov 2026: Moved from the worktree to `apps/sabaa`. All 20 tests pass from `apps/sabaa` without a `PYTHONPATH` override.
+- 19 Nov 2026: The user found the stamp too large. In the browser print view (and the Mobile App, which shows the HTML on screen) Frappe's print CSS won: `img { max-width: 100% }` and the screen rule `td img { width: 100% !important }` stretched the stamp to 205x100 px. Fixed in d5f3704: selector `.print-format .sign-space img.sign-stamp` with `width/height: auto !important` and `max-width/max-height: 70px !important`, `bottom: -6px`. Checked GW/SIV/00228/2026 at 1280 px and 400 px widths (70x70) and as PDF. 20 tests pass.
+- 19 Nov 2026: Local gunicorn does not serve `/files`, so images (also the company logo) do not load in the local browser print view. The check used a copy of the page with local file paths.
